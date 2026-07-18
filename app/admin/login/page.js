@@ -1,0 +1,40 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function AdminLogin() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function login(e) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) return setError("Login gagal: " + error.message);
+    router.replace("/admin");
+  }
+
+  return (
+    <div className="grid min-h-screen place-items-center px-4">
+      <div className="card w-full max-w-sm p-6">
+        <h1 className="text-xl font-extrabold text-primary">Admin Kantin</h1>
+        <p className="mt-1 text-sm text-ink-soft">Masuk untuk mengelola pesanan & produk.</p>
+        <form onSubmit={login} className="mt-5 space-y-3">
+          <input className="input" type="email" placeholder="Email" value={email}
+            onChange={(e) => setEmail(e.target.value)} required />
+          <input className="input" type="password" placeholder="Password" value={password}
+            onChange={(e) => setPassword(e.target.value)} required />
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <button className="btn-primary w-full" disabled={loading}>
+            {loading ? "Memproses..." : "Masuk"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

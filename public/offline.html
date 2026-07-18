@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Offline — Kantin Digital</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#F5F7FA; color:#1E2A3A;
+      display:grid; place-items:center; min-height:100vh; margin:0; text-align:center; padding:24px; }
+    .card { background:#fff; border-radius:20px; padding:32px; box-shadow:0 8px 30px rgba(30,42,58,.12); max-width:340px; }
+    h1 { color:#1B6FEB; font-size:20px; margin:0 0 8px; }
+    p { color:#64748B; font-size:14px; }
+    button { margin-top:16px; background:#1B6FEB; color:#fff; border:0; border-radius:12px; padding:12px 20px; font-weight:600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Kamu sedang offline</h1>
+    <p>Periksa koneksi internetmu lalu coba lagi.</p>
+    <button onclick="location.reload()">Muat Ulang</button>
+  </div>
+</body>
+</html>
