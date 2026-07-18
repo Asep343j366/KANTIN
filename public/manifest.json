@@ -1,8 +1,9 @@
 {
-  "name": "Kantin Kejujuran Informa BMS",
+  "id": "/?app=pembeli",
+  "name": "Kantin Kejujuran BMS — Pembeli",
   "short_name": "Kantin BMS",
   "description": "Pesan makanan & minuman kantin, bayar QRIS, ambil di tempat.",
-  "start_url": "/",
+  "start_url": "/?app=pembeli",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
