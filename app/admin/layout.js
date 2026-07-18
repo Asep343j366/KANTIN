@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import AdminNav from "@/components/AdminNav";
+import AdminShell from "@/components/AdminShell";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
@@ -29,10 +29,5 @@ export default function AdminLayout({ children }) {
   if (isLogin) return <main className="min-h-screen bg-surface">{children}</main>;
   if (!authed) return null;
 
-  return (
-    <div className="min-h-screen bg-surface">
-      <AdminNav />
-      <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

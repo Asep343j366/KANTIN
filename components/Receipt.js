@@ -17,8 +17,9 @@ export default function Receipt({ order, items, settings, onClose }) {
       <div className="w-full max-w-md">
         <div id="receipt" className="rounded-t-2xl bg-white p-6 print:rounded-none">
           <div className="text-center">
-            <div className="mx-auto mb-2 grid h-12 w-12 place-items-center rounded-full bg-primary-light text-primary">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 3h16v18l-3-2-2 2-3-2-3 2-2-2-3 2z" strokeLinejoin="round"/><path d="M8 8h8M8 12h8" strokeLinecap="round"/></svg>
+            <div className="mx-auto mb-2 grid h-14 w-14 place-items-center overflow-hidden rounded-2xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.PNG" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <h2 className="text-lg font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h2>
             {settings?.alamat && <p className="text-xs text-ink-soft">{settings.alamat}</p>}

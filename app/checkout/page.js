@@ -23,6 +23,11 @@ export default function CheckoutPage() {
     setItems(getCart());
     supabase.from("settings").select("*").eq("id", 1).single()
       .then(({ data }) => setSettings(data));
+    // Autofill dari transaksi terakhir (pelanggan yang sama)
+    try {
+      const last = JSON.parse(localStorage.getItem("kantin_last_customer") || "null");
+      if (last) { setNama(last.nama || ""); setHp(last.hp || ""); }
+    } catch {}
   }, []);
 
   const total = cartTotal(items);
@@ -83,6 +88,9 @@ export default function CheckoutPage() {
       if (iErr) throw iErr;
 
       clearCart();
+      try {
+        localStorage.setItem("kantin_last_customer", JSON.stringify({ nama: nama.trim(), hp: hp.trim() }));
+      } catch {}
       router.push(`/order/${kode}?new=1`);
     } catch (e) {
       setError("Gagal membuat pesanan: " + (e.message || e));
