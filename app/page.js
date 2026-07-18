@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ProductCard from "@/components/ProductCard";
 import Header from "@/components/Header";
+import { getFavorites } from "@/lib/favorites";
 
 export default function CatalogPage() {
   const [products, setProducts] = useState([]);
@@ -11,6 +12,14 @@ export default function CatalogPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [favs, setFavs] = useState([]);
+
+  useEffect(() => {
+    const upd = () => setFavs(getFavorites());
+    upd();
+    window.addEventListener("fav:update", upd);
+    return () => window.removeEventListener("fav:update", upd);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -28,11 +37,11 @@ export default function CatalogPage() {
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const okCat = cat === "all" || p.category_id === cat;
+      const okCat = cat === "fav" ? favs.includes(p.id) : (cat === "all" || p.category_id === cat);
       const okQ = p.nama.toLowerCase().includes(q.toLowerCase());
       return okCat && okQ;
     });
-  }, [products, q, cat]);
+  }, [products, q, cat, favs]);
 
   return (
     <main className="pb-5">
@@ -52,6 +61,12 @@ export default function CatalogPage() {
         </div>
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           <Chip active={cat === "all"} onClick={() => setCat("all")}>Semua</Chip>
+          <Chip active={cat === "fav"} onClick={() => setCat("fav")}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill={cat === "fav" ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" className="mr-1 inline">
+              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>
+            </svg>
+            Favorit
+          </Chip>
           {categories.map((c) => (
             <Chip key={c.id} active={cat === c.id} onClick={() => setCat(c.id)}>{c.nama}</Chip>
           ))}
