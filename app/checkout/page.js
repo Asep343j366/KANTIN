@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { getCart, cartTotal, clearCart } from "@/lib/cart";
 import { rupiah, orderCode } from "@/lib/format";
+import Button from "@/components/Button";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -136,7 +137,7 @@ export default function CheckoutPage() {
           </div>
           <OrderSummary items={items} total={total} />
           {error && <p className="text-sm text-danger">{error}</p>}
-          <button onClick={nextStep} className="btn-primary w-full">Lanjut ke Pembayaran</button>
+          <Button onClick={nextStep} className="btn-block">Lanjut ke Pembayaran</Button>
         </div>
       )}
 
@@ -180,10 +181,8 @@ export default function CheckoutPage() {
 
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex gap-3">
-            <button onClick={() => setStep(1)} className="btn-outline flex-1">Kembali</button>
-            <button onClick={submitOrder} disabled={submitting} className="btn-primary flex-1 disabled:opacity-60">
-              {submitting ? "Mengirim..." : "Kirim Pesanan"}
-            </button>
+            <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Kembali</Button>
+            <Button onClick={submitOrder} loading={submitting} className="flex-1">Kirim Pesanan</Button>
           </div>
         </div>
       )}
@@ -194,7 +193,7 @@ export default function CheckoutPage() {
 function StepDot({ n, active, label }) {
   return (
     <div className="flex items-center gap-2">
-      <span className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${active ? "bg-primary text-white" : "bg-gray-200 text-ink-soft"}`}>{n}</span>
+      <span className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${active ? "bg-gradient-to-br from-[#2E86FF] to-[#1657C0] text-white" : "bg-gray-200 text-ink-soft"}`}>{n}</span>
       <span className={`text-sm font-semibold ${active ? "text-ink" : "text-ink-soft"}`}>{label}</span>
     </div>
   );

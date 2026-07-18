@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import Button from "@/components/Button";
 
 export default function AdminSettings() {
   const [s, setS] = useState(null);
@@ -90,9 +91,7 @@ export default function AdminSettings() {
           )}
         </div>
         {msg && <p className="text-sm text-primary">{msg}</p>}
-        <button onClick={save} disabled={saving} className="btn-primary w-full">
-          {saving ? "Menyimpan..." : "Simpan Pengaturan"}
-        </button>
+        <Button onClick={save} loading={saving} className="btn-block">Simpan Pengaturan</Button>
       </div>
     </div>
   );

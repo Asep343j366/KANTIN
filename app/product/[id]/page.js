@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { addToCart } from "@/lib/cart";
 import { rupiah } from "@/lib/format";
+import Button from "@/components/Button";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -75,13 +77,14 @@ export default function ProductDetail() {
             <p className="text-xs text-ink-soft">Total</p>
             <p className="text-lg font-extrabold text-primary">{rupiah(p.harga * qty)}</p>
           </div>
-          <button
+          <Button
             disabled={habis}
-            onClick={() => { addToCart(p, qty, note); router.push("/cart"); }}
-            className="btn-primary flex-1 disabled:bg-gray-300"
+            loading={adding}
+            onClick={() => { setAdding(true); addToCart(p, qty, note); router.push("/cart"); }}
+            className="flex-1"
           >
             {habis ? "Stok Habis" : "Tambah ke Keranjang"}
-          </button>
+          </Button>
         </div>
       </div>
     </main>

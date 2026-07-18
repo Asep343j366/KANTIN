@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import Button from "@/components/Button";
 
 const KATEGORI = {
   keluar: ["Belanja Stok", "Operasional", "Lainnya"],
@@ -67,9 +68,9 @@ export default function JournalPage() {
         <h2 className="mb-3 font-bold">Catat Transaksi Kas</h2>
         <div className="mb-3 flex gap-2">
           <button onClick={() => pickJenis("keluar")}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${jenis === "keluar" ? "bg-danger text-white" : "border border-gray-200"}`}>Uang Keluar</button>
+            className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${jenis === "keluar" ? "bg-gradient-to-br from-[#F87171] to-[#DC2626] text-white" : "border border-gray-200"}`}>Uang Keluar</button>
           <button onClick={() => pickJenis("masuk")}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${jenis === "masuk" ? "bg-success text-white" : "border border-gray-200"}`}>Uang Masuk</button>
+            className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${jenis === "masuk" ? "bg-gradient-to-br from-[#34D26A] to-[#16A34A] text-white" : "border border-gray-200"}`}>Uang Masuk</button>
         </div>
         <label className="mb-1 block text-sm font-semibold">Kategori</label>
         <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="input mb-3">
@@ -81,10 +82,9 @@ export default function JournalPage() {
         <label className="mb-1 block text-sm font-semibold">Jumlah (Rp)</label>
         <input value={jumlah} onChange={(e) => setJumlah(e.target.value)} type="number" min="0" className="input mb-3" placeholder="0" />
         {err && <p className="mb-2 text-sm text-danger">{err}</p>}
-        <button onClick={save} disabled={saving}
-          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-white ${jenis === "keluar" ? "bg-danger" : "bg-primary"} disabled:opacity-60`}>
-          {saving ? "Menyimpan..." : "Simpan Catatan"}
-        </button>
+        <Button onClick={save} loading={saving} variant={jenis === "keluar" ? "danger" : "primary"} className="btn-block">
+          Simpan Catatan
+        </Button>
       </div>
 
       <h2 className="mb-2 mt-5 font-bold">Riwayat Kas</h2>

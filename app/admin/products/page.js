@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah } from "@/lib/format";
+import Button from "@/components/Button";
 
 const empty = { nama: "", deskripsi: "", harga: "", hpp: "", category_id: "", stok: "", tersedia: true, foto_url: "" };
 
@@ -149,9 +150,7 @@ function ProductForm({ product, categories, onClose, onSaved }) {
             Tersedia untuk dipesan
           </label>
           {error && <p className="text-sm text-danger">{error}</p>}
-          <button onClick={save} disabled={saving} className="btn-primary w-full">
-            {saving ? "Menyimpan..." : "Simpan"}
-          </button>
+          <Button onClick={save} loading={saving} className="btn-block">Simpan</Button>
         </div>
       </div>
     </div>

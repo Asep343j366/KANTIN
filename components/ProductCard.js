@@ -34,7 +34,7 @@ export default function ProductCard({ product }) {
           <button
             disabled={habis}
             onClick={() => addToCart(product, 1)}
-            className="grid h-8 w-8 place-items-center rounded-full bg-primary text-white shadow-card disabled:bg-gray-300"
+            className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#2E86FF] to-[#1657C0] text-white shadow-card disabled:from-gray-300 disabled:to-gray-300"
             aria-label="Tambah ke keranjang"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

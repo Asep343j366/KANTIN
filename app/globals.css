@@ -12,11 +12,22 @@ body {
 }
 
 @layer components {
+  /* Tombol: ukuran seragam & lebih kecil */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition active:scale-[0.98];
+    @apply relative inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition active:scale-[0.98] disabled:opacity-60;
   }
   .btn-primary {
-    @apply btn bg-primary text-white shadow-card hover:bg-primary-dark;
+    @apply btn text-white shadow-card;
+    background-image: linear-gradient(135deg, #2E86FF 0%, #1B6FEB 55%, #1657C0 100%);
+  }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-success {
+    @apply btn text-white shadow-card;
+    background-image: linear-gradient(135deg, #34D26A 0%, #22C55E 55%, #16A34A 100%);
+  }
+  .btn-danger {
+    @apply btn text-white shadow-card;
+    background-image: linear-gradient(135deg, #F87171 0%, #EF4444 55%, #DC2626 100%);
   }
   .btn-outline {
     @apply btn border border-gray-200 bg-white text-ink hover:bg-gray-50;
@@ -24,16 +35,29 @@ body {
   .btn-ghost {
     @apply btn text-primary hover:bg-primary-light;
   }
-  .card {
-    @apply rounded-2xl bg-white shadow-card;
-  }
+  /* Ukuran khusus */
+  .btn-xs { @apply rounded-md px-2.5 py-1.5 text-xs; }
+  .btn-block { @apply w-full; }
+
+  .card { @apply rounded-2xl bg-white shadow-card; }
   .input {
-    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20;
+    @apply w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20;
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
   }
-  .container-app {
-    @apply mx-auto w-full max-w-md px-4;
-  }
+  .container-app { @apply mx-auto w-full max-w-md px-4; }
+}
+
+/* Loader 3 bola melayang (dipakai di dalam tombol saat proses) */
+.dots { display: inline-flex; gap: 4px; align-items: center; }
+.dots > span {
+  width: 7px; height: 7px; border-radius: 9999px; background: currentColor;
+  animation: dotFloat 0.9s ease-in-out infinite;
+}
+.dots > span:nth-child(2) { animation-delay: 0.15s; }
+.dots > span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dotFloat {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-5px); opacity: 1; }
 }

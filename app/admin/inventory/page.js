@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import Button from "@/components/Button";
 
 export default function InventoryPage() {
   const [products, setProducts] = useState([]);
@@ -177,7 +178,7 @@ function StockModal({ product, mode, me, onClose, onDone }) {
         <label className="mb-1 mt-2 block text-sm font-semibold">Catatan</label>
         <input value={catatan} onChange={(e) => setCatatan(e.target.value)} className="input mb-3" placeholder="Opsional" />
         {err && <p className="mb-2 text-sm text-danger">{err}</p>}
-        <button onClick={save} disabled={saving} className="btn-primary w-full">{saving ? "Menyimpan..." : "Simpan"}</button>
+        <Button onClick={save} loading={saving} className="btn-block">Simpan</Button>
       </div>
     </div>
   );

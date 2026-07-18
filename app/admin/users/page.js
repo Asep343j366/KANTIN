@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { fmtDateTime } from "@/lib/format";
+import Button from "@/components/Button";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -70,7 +71,7 @@ export default function UsersPage() {
           <input className="input" type="text" placeholder="Password (min. 6 karakter)" value={password} onChange={(e) => setPassword(e.target.value)} required />
           {err && <p className="text-sm text-danger">{err}</p>}
           {msg && <p className="text-sm text-success">{msg}</p>}
-          <button disabled={saving} className="btn-primary w-full">{saving ? "Menyimpan..." : "Buat Admin"}</button>
+          <Button type="submit" loading={saving} className="btn-block">Buat Admin</Button>
         </form>
         <p className="mt-2 text-xs text-ink-soft">Admin baru bisa langsung login di halaman /admin dengan email & password ini.</p>
       </div>

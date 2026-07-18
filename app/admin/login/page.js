@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import Button from "@/components/Button";
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -34,9 +35,7 @@ export default function AdminLogin() {
           <input className="input" type="password" placeholder="Password" value={password}
             onChange={(e) => setPassword(e.target.value)} required />
           {error && <p className="text-sm text-danger">{error}</p>}
-          <button className="btn-primary w-full" disabled={loading}>
-            {loading ? "Memproses..." : "Masuk"}
-          </button>
+          <Button type="submit" loading={loading} className="btn-block">Masuk</Button>
         </form>
       </div>
     </div>

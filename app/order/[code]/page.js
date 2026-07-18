@@ -44,7 +44,7 @@ export default function OrderStatus() {
     <main className="container-app pb-10 pt-5">
       {isNew && (
         <div className="card mb-4 border-l-4 border-success bg-green-50 p-4 text-center">
-          <div className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full bg-success text-2xl font-black text-white">✓</div>
+          <div className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#34D26A] to-[#16A34A] text-2xl font-black text-white">✓</div>
           <p className="font-bold text-green-700">Transaksi berhasil tercatat! 🎉</p>
           <p className="text-sm text-green-700">Terima kasih, pesananmu sudah kami terima.</p>
         </div>
