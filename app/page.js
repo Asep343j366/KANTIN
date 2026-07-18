@@ -37,9 +37,10 @@ export default function CatalogPage() {
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
+      const tersedia = p.tersedia && p.stok > 0; // sembunyikan produk habis
       const okCat = cat === "fav" ? favs.includes(p.id) : (cat === "all" || p.category_id === cat);
       const okQ = p.nama.toLowerCase().includes(q.toLowerCase());
-      return okCat && okQ;
+      return tersedia && okCat && okQ;
     });
   }, [products, q, cat, favs]);
 
@@ -59,7 +60,7 @@ export default function CatalogPage() {
             className="input pl-10"
           />
         </div>
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
           <Chip active={cat === "all"} onClick={() => setCat("all")}>Semua</Chip>
           <Chip active={cat === "fav"} onClick={() => setCat("fav")}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill={cat === "fav" ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" className="mr-1 inline">

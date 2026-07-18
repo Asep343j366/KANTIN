@@ -49,6 +49,10 @@ body {
   .container-app { @apply mx-auto w-full max-w-md px-4; }
 }
 
+/* Sembunyikan scrollbar (tetap bisa di-scroll) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Loader 3 bola melayang (dipakai di dalam tombol saat proses) */
 .dots { display: inline-flex; gap: 4px; align-items: center; }
 .dots > span {

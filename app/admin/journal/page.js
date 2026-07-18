@@ -82,7 +82,7 @@ export default function JournalPage() {
         <label className="mb-1 block text-sm font-semibold">Jumlah (Rp)</label>
         <input value={jumlah} onChange={(e) => setJumlah(e.target.value)} type="number" min="0" className="input mb-3" placeholder="0" />
         {err && <p className="mb-2 text-sm text-danger">{err}</p>}
-        <Button onClick={save} loading={saving} variant={jenis === "keluar" ? "danger" : "primary"} className="btn-block">
+        <Button onClick={save} loading={saving} variant={jenis === "keluar" ? "danger" : "success"} className="btn-block">
           Simpan Catatan
         </Button>
       </div>

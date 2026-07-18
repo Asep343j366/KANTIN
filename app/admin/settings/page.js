@@ -56,7 +56,7 @@ export default function AdminSettings() {
   if (!s) return <p className="text-ink-soft">Memuat...</p>;
 
   return (
-    <div className="max-w-lg">
+    <div>
       <h1 className="mb-4 text-lg font-extrabold">Pengaturan Kantin</h1>
       <div className="card space-y-3 p-5">
         <div>

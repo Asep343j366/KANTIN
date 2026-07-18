@@ -340,21 +340,42 @@ function MiniTable({ rows, cols }) {
 }
 function TrendChart({ trend }) {
   if (!trend.length) return <p className="text-sm text-ink-soft">Belum ada data.</p>;
-  const w = Math.max(320, trend.length * 12), h = 140, pad = 24;
+  const totalOmzet = trend.reduce((s, t) => s + t.omzet, 0);
+  const h = 170, pad = 26, bw = 16, gap = 8;
+  const w = Math.max(320, pad * 2 + trend.length * (bw + gap));
   const max = Math.max(...trend.map((t) => t.omzet)) || 1;
-  const pts = trend.map((t, i) => {
-    const x = pad + (i * (w - pad * 2)) / Math.max(1, trend.length - 1);
-    const y = h - pad - (t.omzet / max) * (h - pad * 2);
-    return [x, y];
-  });
-  const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-  const area = path + ` L${pts[pts.length - 1][0].toFixed(1)} ${h - pad} L${pts[0][0].toFixed(1)} ${h - pad} Z`;
+  const baseY = h - pad;
   return (
-    <div className="overflow-x-auto">
+    <div className="no-scrollbar overflow-x-auto">
+      {totalOmzet === 0 && (
+        <p className="mb-2 text-xs text-ink-soft">Belum ada penjualan pada rentang tanggal ini.</p>
+      )}
       <svg width={w} height={h}>
-        <path d={area} fill="#1B6FEB22" />
-        <path d={path} fill="none" stroke="#1B6FEB" strokeWidth="2" />
-        {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="2" fill="#1B6FEB" />)}
+        {/* garis baseline & grid */}
+        <line x1={pad} y1={baseY} x2={w - pad} y2={baseY} stroke="#E5E9F0" strokeWidth="1" />
+        <line x1={pad} y1={pad} x2={w - pad} y2={pad} stroke="#F1F4F8" strokeWidth="1" />
+        <defs>
+          <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2E86FF" />
+            <stop offset="100%" stopColor="#1657C0" />
+          </linearGradient>
+        </defs>
+        {trend.map((t, i) => {
+          const x = pad + i * (bw + gap);
+          const barH = t.omzet > 0 ? Math.max(3, (t.omzet / max) * (h - pad * 2)) : 0;
+          const y = baseY - barH;
+          const showLabel = i === 0 || i === trend.length - 1 || i % 5 === 0;
+          return (
+            <g key={t.date}>
+              {barH > 0 && <rect x={x} y={y} width={bw} height={barH} rx="3" fill="url(#barGrad)" />}
+              {showLabel && (
+                <text x={x + bw / 2} y={h - 8} textAnchor="middle" fontSize="8" fill="#94A3B8">
+                  {t.date.slice(5)}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
     </div>
   );

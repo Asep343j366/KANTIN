@@ -9,6 +9,7 @@ export default function InventoryPage() {
   const [products, setProducts] = useState([]);
   const [moves, setMoves] = useState([]);
   const [q, setQ] = useState("");
+  const [moveFilter, setMoveFilter] = useState("ALL");
   const [modal, setModal] = useState(null); // {product, mode}
   const [me, setMe] = useState("admin");
 
@@ -28,6 +29,7 @@ export default function InventoryPage() {
   }, []);
 
   const filtered = products.filter((p) => p.nama.toLowerCase().includes(q.toLowerCase()));
+  const filteredMoves = moves.filter((m) => moveFilter === "ALL" || m.product_id === moveFilter);
   const totalSku = products.length;
   const nilaiStok = products.reduce((s, p) => s + p.stok * (p.hpp || 0), 0);
   const menipis = products.filter((p) => p.stok <= 5).length;
@@ -78,7 +80,13 @@ export default function InventoryPage() {
         </table>
       </div>
 
-      <h2 className="mb-2 mt-5 font-bold">Riwayat Pergerakan Stok</h2>
+      <div className="mb-2 mt-5 flex items-center justify-between gap-3">
+        <h2 className="font-bold">Riwayat Pergerakan Stok</h2>
+        <select value={moveFilter} onChange={(e) => setMoveFilter(e.target.value)} className="input max-w-[200px] py-2 text-sm">
+          <option value="ALL">Semua Barang</option>
+          {products.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
+        </select>
+      </div>
       <div className="card overflow-x-auto p-4">
         <table className="w-full text-sm">
           <thead>
@@ -92,7 +100,7 @@ export default function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {moves.length ? moves.map((m) => (
+            {filteredMoves.length ? filteredMoves.map((m) => (
               <tr key={m.id} className="border-t border-gray-100">
                 <td className="py-2 pr-2 whitespace-nowrap">{fmtDateTime(m.created_at)}</td>
                 <td className="py-2 pr-2">{m.nama_produk}</td>
