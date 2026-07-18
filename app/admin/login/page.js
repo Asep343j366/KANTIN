@@ -25,7 +25,7 @@ export default function AdminLogin() {
       <div className="card w-full max-w-sm p-6">
         <div className="mx-auto mb-3 grid h-20 w-20 place-items-center overflow-hidden rounded-2xl shadow-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.PNG" alt="Logo" className="h-full w-full object-contain" />
+          <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <h1 className="text-center text-xl font-extrabold text-primary">Admin Kantin</h1>
         <p className="mt-1 text-center text-sm text-ink-soft">Big Mall Samarinda — kelola pesanan & produk.</p>

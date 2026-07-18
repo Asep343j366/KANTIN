@@ -1,12 +1,12 @@
 {
-  "name": "Big Mall Samarinda — Kantin Digital",
-  "short_name": "Kantin BigMall",
+  "name": "Kantin Kejujuran Informa BMS",
+  "short_name": "Kantin BMS",
   "description": "Pesan makanan & minuman kantin, bayar QRIS, ambil di tempat.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0F4575",
+  "background_color": "#FFFFFF",
   "theme_color": "#0F4575",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
