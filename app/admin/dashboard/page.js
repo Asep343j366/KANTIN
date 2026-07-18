@@ -9,7 +9,7 @@ async function fetchAll() {
     await Promise.all([
       supabase.from("orders").select("id,kode_pesanan,total,created_at,status"),
       supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah"),
-      supabase.from("products").select("id,nama,harga,stok,tersedia,category_id"),
+      supabase.from("products").select("id,nama,harga,hpp,stok,tersedia,category_id"),
       supabase.from("categories").select("id,nama"),
       supabase.from("settings").select("*").eq("id", 1).single(),
     ]);
@@ -52,6 +52,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Kpi color="#14B8A6" label="Keuntungan Hari Ini" value={rupiah(d.labaHariIni)} sub="omzet − HPP" />
+        <Kpi color="#6366F1" label="Keuntungan Bulan Ini" value={rupiah(d.labaBulanIni)} />
         <Kpi color="#F59E0B" label="Total Produk" value={d.totalProduk} />
         <Kpi color="#EF4444" label="Stok Menipis" value={d.stokMenipis.length} sub={`ambang ≤ ${threshold}`} />
       </div>

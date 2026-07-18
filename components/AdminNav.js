@@ -7,7 +7,10 @@ const links = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin", label: "Transaksi" },
   { href: "/admin/products", label: "Produk" },
+  { href: "/admin/inventory", label: "Inventory" },
   { href: "/admin/reports", label: "Laporan" },
+  { href: "/admin/journal", label: "Jurnal" },
+  { href: "/admin/users", label: "User" },
   { href: "/admin/settings", label: "Pengaturan" },
 ];
 

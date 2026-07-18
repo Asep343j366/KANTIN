@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah } from "@/lib/format";
 
-const empty = { nama: "", deskripsi: "", harga: "", category_id: "", stok: "", tersedia: true, foto_url: "" };
+const empty = { nama: "", deskripsi: "", harga: "", hpp: "", category_id: "", stok: "", tersedia: true, foto_url: "" };
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -43,7 +43,9 @@ export default function AdminProducts() {
             </div>
             <div className="flex-1">
               <p className="font-semibold">{p.nama}</p>
-              <p className="text-sm text-ink-soft">{rupiah(p.harga)} · Stok {p.stok} · {p.tersedia ? "Tersedia" : "Nonaktif"}</p>
+              <p className="text-sm text-ink-soft">
+                {rupiah(p.harga)} · HPP {rupiah(p.hpp || 0)} · Laba {rupiah((p.harga || 0) - (p.hpp || 0))} · Stok {p.stok}
+              </p>
             </div>
             <button onClick={() => setEditing(p)} className="btn-outline px-3 py-2 text-xs">Edit</button>
             <button onClick={() => del(p.id)} className="text-danger">✕</button>
@@ -60,7 +62,7 @@ export default function AdminProducts() {
 }
 
 function ProductForm({ product, categories, onClose, onSaved }) {
-  const [f, setF] = useState({ ...empty, ...product, harga: product.harga || "", stok: product.stok ?? "" });
+  const [f, setF] = useState({ ...empty, ...product, harga: product.harga || "", hpp: product.hpp ?? "", stok: product.stok ?? "" });
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -81,6 +83,7 @@ function ProductForm({ product, categories, onClose, onSaved }) {
         nama: f.nama.trim(),
         deskripsi: f.deskripsi?.trim() || null,
         harga: parseInt(f.harga) || 0,
+        hpp: parseInt(f.hpp) || 0,
         stok: parseInt(f.stok) || 0,
         category_id: f.category_id || null,
         tersedia: !!f.tersedia,
@@ -111,10 +114,25 @@ function ProductForm({ product, categories, onClose, onSaved }) {
         <div className="space-y-3">
           <input className="input" placeholder="Nama produk" value={f.nama} onChange={(e) => set("nama", e.target.value)} />
           <textarea className="input" rows={2} placeholder="Deskripsi" value={f.deskripsi || ""} onChange={(e) => set("deskripsi", e.target.value)} />
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" type="number" placeholder="Harga" value={f.harga} onChange={(e) => set("harga", e.target.value)} />
-            <input className="input" type="number" placeholder="Stok" value={f.stok} onChange={(e) => set("stok", e.target.value)} />
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold">Harga Jual</label>
+              <input className="input" type="number" placeholder="0" value={f.harga} onChange={(e) => set("harga", e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold">HPP (Modal)</label>
+              <input className="input" type="number" placeholder="0" value={f.hpp} onChange={(e) => set("hpp", e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold">Stok</label>
+              <input className="input" type="number" placeholder="0" value={f.stok} onChange={(e) => set("stok", e.target.value)} />
+            </div>
           </div>
+          {(parseInt(f.harga) > 0) && (
+            <p className="-mt-1 text-xs text-ink-soft">
+              Laba per item: <b className="text-success">{rupiah((parseInt(f.harga) || 0) - (parseInt(f.hpp) || 0))}</b>
+            </p>
+          )}
           <select className="input" value={f.category_id || ""} onChange={(e) => set("category_id", e.target.value)}>
             <option value="">— Pilih kategori —</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.nama}</option>)}
