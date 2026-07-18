@@ -61,7 +61,7 @@ export default function AdminShell({ children }) {
       <div className="flex items-center gap-2.5 border-b border-gray-100 px-4 py-4">
         <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
+          <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
           <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Admin Panel</p>
@@ -114,7 +114,7 @@ export default function AdminShell({ children }) {
           </button>
           <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg md:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
+            <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
           </div>
           <h1 className="text-base font-extrabold text-ink">{current?.label || "Dashboard"}</h1>
         </header>

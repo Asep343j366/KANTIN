@@ -7,7 +7,7 @@ export default function Header({ settings }) {
       <div className="container-app flex items-center gap-3 px-0">
         <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/95 shadow-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
+          <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Kantin Digital</p>
