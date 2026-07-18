@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah } from "@/lib/format";
 import Button from "@/components/Button";
+import { compressImage } from "@/lib/compressImage";
 
 const empty = { nama: "", deskripsi: "", harga: "", hpp: "", category_id: "", stok: "", tersedia: true, foto_url: "" };
 
@@ -74,9 +75,9 @@ function ProductForm({ product, categories, onClose, onSaved }) {
     try {
       let foto_url = f.foto_url;
       if (file) {
-        const ext = file.name.split(".").pop();
-        const path = `prod-${Date.now()}.${ext}`;
-        const { error: e } = await supabase.storage.from("products").upload(path, file);
+        const up = await compressImage(file);
+        const path = `prod-${Date.now()}.jpg`;
+        const { error: e } = await supabase.storage.from("products").upload(path, up);
         if (e) throw e;
         foto_url = supabase.storage.from("products").getPublicUrl(path).data.publicUrl;
       }

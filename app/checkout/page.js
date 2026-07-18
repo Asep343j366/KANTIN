@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getCart, cartTotal, clearCart } from "@/lib/cart";
 import { rupiah, orderCode } from "@/lib/format";
 import Button from "@/components/Button";
+import { compressImage } from "@/lib/compressImage";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -57,10 +58,10 @@ export default function CheckoutPage() {
     setSubmitting(true);
     try {
       const kode = orderCode();
-      // 1) upload bukti
-      const ext = bukti.name.split(".").pop();
-      const path = `${kode}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("payments").upload(path, bukti);
+      // 1) kompres & upload bukti
+      const buktiUp = await compressImage(bukti);
+      const path = `${kode}-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("payments").upload(path, buktiUp);
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("payments").getPublicUrl(path);
 

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Button from "@/components/Button";
+import { compressImage } from "@/lib/compressImage";
 
 export default function AdminSettings() {
   const [s, setS] = useState(null);
@@ -29,9 +30,9 @@ export default function AdminSettings() {
     try {
       let qris_image_url = s.qris_image_url;
       if (file) {
-        const ext = file.name.split(".").pop();
-        const path = `qris-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("qris").upload(path, file, { upsert: true });
+        const up = await compressImage(file);
+        const path = `qris-${Date.now()}.jpg`;
+        const { error } = await supabase.storage.from("qris").upload(path, up, { upsert: true });
         if (error) throw error;
         qris_image_url = supabase.storage.from("qris").getPublicUrl(path).data.publicUrl;
       }
