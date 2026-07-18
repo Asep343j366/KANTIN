@@ -9,7 +9,8 @@ const palette = ["#1B6FEB", "#22C55E", "#F59E0B", "#EF4444", "#A855F7", "#14B8A6
 
 function defaultDates() {
   const end = new Date(); const start = new Date(); start.setDate(start.getDate() - 29);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  const loc = (d) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD lokal
+  return { start: loc(start), end: loc(end) };
 }
 
 export default function ReportsPage() {

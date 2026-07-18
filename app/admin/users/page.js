@@ -61,7 +61,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-lg">
+    <div>
       <h1 className="mb-4 text-lg font-extrabold">Kelola User Admin</h1>
 
       <div className="card mb-4 p-4">
