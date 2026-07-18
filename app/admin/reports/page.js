@@ -72,17 +72,65 @@ export default function ReportsPage() {
   const curPage = Math.min(page, totalPages);
   const pageRows = rows.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
-  function exportExcel() {
-    const header = ["Nama Barang", "Kategori", "Qty Terjual", "Total Penjualan", "Harga Rata2", "Kontribusi %", "Last Sale", "Days Since Last Sale"];
-    const lines = [header.join(",")];
-    data.detailRows.forEach((r) => {
-      lines.push([`"${r.NAMA}"`, r.KATEGORI, r.qty, r.total, Math.round(r.avgHarga), r.kontribusi.toFixed(1), r.lastSale || "-", r.daysSinceLastSale ?? "-"].join(","));
-    });
-    const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `laporan-penjualan-${applied.start}_${applied.end}.csv`; a.click();
-    URL.revokeObjectURL(url);
+  async function exportExcel() {
+    const XLSX = await import("xlsx");
+    const wb = XLSX.utils.book_new();
+    const add = (rows, name) =>
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name);
+    const n2 = (v) => Number((v || 0).toFixed(2));
+
+    // 1) Ringkasan KPI
+    add([
+      ["Metrik", "Nilai"],
+      ["Total Penjualan", data.kpi.totalPenjualan],
+      ["Total Qty Terjual", data.kpi.totalQty],
+      ["Total Transaksi", data.kpi.totalTransaksi],
+      ["Jumlah SKU Terjual", data.kpi.skuCount],
+      ["Average Penjualan per Hari", Math.round(data.kpi.avgPerHari)],
+      ["Average Qty per Transaksi", n2(data.kpi.avgQtyPerTrx)],
+      ["Average Basket Size", Math.round(data.kpi.avgBasket)],
+      ["Jumlah Produk Aktif Terjual", data.kpi.produkAktifTerjual],
+      ["Periode", `${applied.start} s.d. ${applied.end}`],
+    ], "Ringkasan KPI");
+
+    // 2) Detail Penjualan
+    add([
+      ["Ranking", "Nama Barang", "Qty Terjual", "Total Penjualan", "Harga Rata-rata", "Kontribusi %", "Last Sale Date", "Days Since Last Sale"],
+      ...data.detailRows.map((r, i) => [i + 1, r.NAMA, r.qty, r.total, Math.round(r.avgHarga), n2(r.kontribusi), r.lastSale || "-", r.daysSinceLastSale ?? "-"]),
+    ], "Detail Penjualan");
+
+    // 3) Top Fast Moving
+    add([
+      ["Rank", "Nama Barang", "Qty", "Sales", "Kontribusi %"],
+      ...data.fastMoving.map((r, i) => [i + 1, r.NAMA, r.qty, r.total, n2(r.kontribusi)]),
+    ], "Top Fast Moving");
+
+    // 4) Top Sales Contributor
+    add([
+      ["Rank", "Nama Barang", "Omzet", "Kontribusi %"],
+      ...data.contributors.map((r, i) => [i + 1, r.NAMA, r.total, n2(r.kontribusi)]),
+    ], "Top Sales Contributor");
+
+    // 5) Slow Moving
+    add([
+      ["Nama Barang", "Qty", "Last Sale Date", "Days Since Last Sale"],
+      ...data.slowMoving.map((r) => [r.NAMA, r.qty, r.lastSale || "Belum pernah", r.days === Infinity ? "-" : r.days]),
+    ], "Slow Moving");
+
+    // 6) Dead Stock
+    add([
+      ["Nama Barang", "Stok Saat Ini", "Last Sale Date", "Days Since Last Sale"],
+      ...data.deadStock.map((r) => [r.NAMA, r.stok, r.lastSale || "Belum pernah", r.days === Infinity ? "-" : r.days]),
+    ], "Dead Stock");
+
+    // 7) Stock Monitoring
+    add([
+      ["Nama Barang", "Stok Saat Ini", "Qty Terjual", "Avg Sales per Hari", "Estimasi Hari Stok Bertahan"],
+      ...data.stockMonitoring.map((r) => [r.NAMA, r.stok, r.qty, n2(r.avgSalesPerHari), r.estimasiHari === null ? "-" : Math.round(r.estimasiHari)]),
+    ], "Stock Monitoring");
+
+    const d = applied.end.split("-").join("");
+    XLSX.writeFile(wb, `Report_Penjualan_Barang_${d}.xlsx`);
   }
 
   return (
