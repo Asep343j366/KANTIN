@@ -4,8 +4,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 const links = [
-  { href: "/admin", label: "Pesanan" },
+  { href: "/admin/dashboard", label: "Dashboard" },
+  { href: "/admin", label: "Transaksi" },
   { href: "/admin/products", label: "Produk" },
+  { href: "/admin/reports", label: "Laporan" },
   { href: "/admin/settings", label: "Pengaturan" },
 ];
 
@@ -22,12 +24,12 @@ export default function AdminNav() {
         <span className="font-extrabold text-primary">Admin Kantin</span>
         <button onClick={logout} className="text-sm font-semibold text-ink-soft">Keluar</button>
       </div>
-      <nav className="mx-auto flex max-w-3xl gap-1 px-4 pb-2">
+      <nav className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 pb-2">
         {links.map((l) => {
           const active = l.href === "/admin" ? pathname === "/admin" : pathname.startsWith(l.href);
           return (
             <Link key={l.href} href={l.href}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold ${active ? "bg-primary-light text-primary" : "text-ink-soft"}`}>
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold ${active ? "bg-primary-light text-primary" : "text-ink-soft"}`}>
               {l.label}
             </Link>
           );

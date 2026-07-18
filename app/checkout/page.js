@@ -65,7 +65,7 @@ export default function CheckoutPage() {
         no_hp: hp.trim(),
         catatan: catatan.trim() || null,
         total,
-        status: "menunggu_verifikasi",
+        status: "selesai",
         bukti_bayar_url: pub.publicUrl,
       }).select().single();
       if (oErr) throw oErr;

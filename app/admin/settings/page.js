@@ -40,6 +40,7 @@ export default function AdminSettings() {
         no_wa_admin: s.no_wa_admin || null,
         jam_operasional: s.jam_operasional || null,
         alamat: s.alamat || null,
+        stok_menipis_threshold: parseInt(s.stok_menipis_threshold) || 5,
         qris_image_url: qris_image_url || null,
       };
       const { error } = await supabase.from("settings").upsert(payload);
@@ -74,6 +75,12 @@ export default function AdminSettings() {
             <label className="mb-1 block text-sm font-semibold">Jam Operasional</label>
             <input className="input" value={s.jam_operasional || ""} onChange={(e) => set("jam_operasional", e.target.value)} placeholder="07:00 - 15:00" />
           </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">Ambang Stok Menipis</label>
+          <input className="input" type="number" min="1" value={s.stok_menipis_threshold ?? 5}
+            onChange={(e) => set("stok_menipis_threshold", e.target.value)} placeholder="5" />
+          <p className="mt-1 text-xs text-ink-soft">Produk dengan stok ≤ nilai ini akan muncul di "Stok Menipis" dashboard.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm font-semibold">Gambar QRIS Statis</label>

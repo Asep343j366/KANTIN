@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ProductCard from "@/components/ProductCard";
+import Header from "@/components/Header";
 
 export default function CatalogPage() {
   const [products, setProducts] = useState([]);
@@ -34,18 +35,10 @@ export default function CatalogPage() {
   }, [products, q, cat]);
 
   return (
-    <main className="container-app pt-5">
-      <header className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-          Selamat datang di
-        </p>
-        <h1 className="text-2xl font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h1>
-        {settings?.jam_operasional && (
-          <p className="mt-0.5 text-sm text-ink-soft">Buka: {settings.jam_operasional}</p>
-        )}
-      </header>
+    <main className="pb-5">
+      <Header settings={settings} />
 
-      <div className="sticky top-0 z-30 -mx-4 bg-surface/95 px-4 pb-3 pt-1 backdrop-blur">
+      <div className="container-app sticky top-0 z-30 bg-surface/95 px-4 pb-3 pt-3 backdrop-blur">
         <div className="relative">
           <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
             width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -65,19 +58,21 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="card h-56 animate-pulse bg-gray-100" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="py-16 text-center text-ink-soft">Tidak ada produk ditemukan.</div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-      )}
+      <div className="container-app">
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="card h-56 animate-pulse bg-gray-100" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-ink-soft">Tidak ada produk ditemukan.</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
+      </div>
     </main>
   );
 }
