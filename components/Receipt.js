@@ -1,15 +1,66 @@
 "use client";
+import { useState } from "react";
 import { rupiah, fmtDateTime } from "@/lib/format";
 
 export default function Receipt({ order, items, settings, onClose }) {
-  async function share() {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    const text = `Struk ${settings?.nama_kantin || "Kantin"} — ${order.kode_pesanan}\nTotal: ${rupiah(order.total)} (LUNAS)`;
-    if (navigator.share) {
-      try { await navigator.share({ title: "Struk Pesanan", text, url }); } catch {}
-    } else {
-      try { await navigator.clipboard.writeText(text + "\n" + url); alert("Info struk disalin."); } catch {}
+  const [sharing, setSharing] = useState(false);
+
+  // Render struk (#receipt) menjadi file JPG untuk dibagikan/diunduh.
+  async function buildReceiptFile() {
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const el = document.getElementById("receipt");
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+      const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.92));
+      if (!blob) return null;
+      return new File([blob], `struk-${order.kode_pesanan}.jpg`, { type: "image/jpeg" });
+    } catch {
+      return null;
     }
+  }
+
+  async function share() {
+    setSharing(true);
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const text = `Struk ${settings?.nama_kantin || "Kantin"} — ${order.kode_pesanan}\nTotal: ${rupiah(order.total)} (LUNAS)\n${url}`;
+    const file = await buildReceiptFile();
+
+    // 1) Bagikan foto struk (JPG) + teks bila didukung
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "Struk Pesanan", text });
+        setSharing(false);
+        return;
+      } catch { /* dibatalkan / gagal → lanjut fallback */ }
+    }
+    // 2) Bagikan teks + link saja
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Struk Pesanan", text, url });
+        setSharing(false);
+        return;
+      } catch {}
+    }
+    // 3) Fallback: unduh JPG + salin teks
+    if (file) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(file);
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    try { await navigator.clipboard.writeText(text); } catch {}
+    setSharing(false);
+  }
+
+  async function downloadImage() {
+    const file = await buildReceiptFile();
+    if (!file) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   return (
@@ -59,8 +110,10 @@ export default function Receipt({ order, items, settings, onClose }) {
 
         <div className="flex gap-2 rounded-b-2xl bg-white p-4 print:hidden">
           <button onClick={onClose} className="btn-outline flex-1">Tutup</button>
-          <button onClick={share} className="btn-outline flex-1">Bagikan</button>
-          <button onClick={() => window.print()} className="btn-primary flex-1">Simpan/Cetak</button>
+          <button onClick={downloadImage} className="btn-outline flex-1">Simpan JPG</button>
+          <button onClick={share} disabled={sharing} className="btn-primary flex-1">
+            {sharing ? "Menyiapkan..." : "Bagikan"}
+          </button>
         </div>
       </div>
 

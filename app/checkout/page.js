@@ -19,7 +19,27 @@ export default function CheckoutPage() {
   const [bukti, setBukti] = useState(null);
   const [preview, setPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [downloadingQ, setDownloadingQ] = useState(false);
   const [error, setError] = useState("");
+
+  async function downloadQris() {
+    if (!settings?.qris_image_url) return;
+    setDownloadingQ(true);
+    try {
+      const res = await fetch(settings.qris_image_url, { mode: "cors" });
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `QRIS-${settings.nama_kantin || "Kantin"}.${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      // fallback: buka di tab baru bila unduh langsung gagal
+      window.open(settings.qris_image_url, "_blank");
+    }
+    setDownloadingQ(false);
+  }
 
   useEffect(() => {
     setItems(getCart());
@@ -158,8 +178,14 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
+            {settings?.qris_image_url && (
+              <Button variant="outline" onClick={downloadQris} loading={downloadingQ} className="mx-auto mt-3">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                Unduh QRIS
+              </Button>
+            )}
             <p className="mt-3 text-xs text-ink-soft">
-              Scan QRIS di atas dengan aplikasi m-banking / e-wallet, bayar sesuai nominal,
+              Scan atau unduh QRIS di atas, bayar lewat m-banking / e-wallet sesuai nominal,
               lalu unggah bukti pembayaran.
             </p>
           </div>
