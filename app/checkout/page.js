@@ -2,102 +2,70 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
 import { getCart, cartTotal, clearCart } from "@/lib/cart";
 import { rupiah, orderCode } from "@/lib/format";
 import Button from "@/components/Button";
-import { compressImage } from "@/lib/compressImage";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [items, setItems] = useState([]);
-  const [settings, setSettings] = useState(null);
-  const [step, setStep] = useState(1); // 1 = data, 2 = pembayaran
+  const [step, setStep] = useState(1); // 1 = data, 2 = bayar QRIS
   const [nama, setNama] = useState("");
   const [hp, setHp] = useState("");
   const [catatan, setCatatan] = useState("");
-  const [bukti, setBukti] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [downloadingQ, setDownloadingQ] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
 
-  async function downloadQris() {
-    if (!settings?.qris_image_url) return;
-    setDownloadingQ(true);
-    try {
-      const res = await fetch(settings.qris_image_url, { mode: "cors" });
-      const blob = await res.blob();
-      const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `QRIS-${settings.nama_kantin || "Kantin"}.${ext}`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      // fallback: buka di tab baru bila unduh langsung gagal
-      window.open(settings.qris_image_url, "_blank");
-    }
-    setDownloadingQ(false);
-  }
+  // State pembayaran
+  const [kode, setKode] = useState("");
+  const [qrImg, setQrImg] = useState("");
+  const [amount, setAmount] = useState(0);
+  const [expiredAt, setExpiredAt] = useState(null);
+  const [remaining, setRemaining] = useState(null);
 
   useEffect(() => {
     setItems(getCart());
-    supabase.from("settings").select("*").eq("id", 1).single()
-      .then(({ data }) => setSettings(data));
-    // Autofill dari transaksi terakhir (pelanggan yang sama)
     try {
       const last = JSON.parse(localStorage.getItem("kantin_last_customer") || "null");
       if (last) { setNama(last.nama || ""); setHp(last.hp || ""); }
     } catch {}
   }, []);
 
+  // Hitung mundur masa berlaku QRIS
+  useEffect(() => {
+    if (!expiredAt) return;
+    const tick = () => {
+      const ms = new Date(expiredAt).getTime() - Date.now();
+      setRemaining(Math.max(0, Math.floor(ms / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiredAt]);
+
   const total = cartTotal(items);
 
-  function nextStep() {
+  async function proceedToPayment() {
     setError("");
     if (!nama.trim()) return setError("Nama wajib diisi.");
     if (!/^0[0-9]{8,13}$/.test(hp.trim())) return setError("Nomor HP tidak valid (contoh: 08123456789).");
-    setStep(2);
-  }
-
-  function onFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type))
-      return setError("File harus JPG/PNG/WebP.");
-    if (f.size > 5 * 1024 * 1024) return setError("Ukuran maksimal 5 MB.");
-    setError("");
-    setBukti(f);
-    setPreview(URL.createObjectURL(f));
-  }
-
-  async function submitOrder() {
-    setError("");
-    if (!bukti) return setError("Silakan unggah bukti pembayaran QRIS.");
-    setSubmitting(true);
+    setProcessing(true);
     try {
-      const kode = orderCode();
-      // 1) kompres & upload bukti
-      const buktiUp = await compressImage(bukti);
-      const path = `${kode}-${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from("payments").upload(path, buktiUp);
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("payments").getPublicUrl(path);
+      const code = orderCode();
 
-      // 2) buat pesanan
+      // 1) Buat order (menunggu pembayaran) + item
       const { data: order, error: oErr } = await supabase.from("orders").insert({
-        kode_pesanan: kode,
+        kode_pesanan: code,
         nama_pelanggan: nama.trim(),
         no_hp: hp.trim(),
         catatan: catatan.trim() || null,
         total,
-        status: "selesai",
-        bukti_bayar_url: pub.publicUrl,
+        status: "menunggu_pembayaran",
       }).select().single();
       if (oErr) throw oErr;
 
-      // 3) simpan item
       const rows = items.map((i) => ({
         order_id: order.id,
         product_id: i.id,
@@ -109,18 +77,34 @@ export default function CheckoutPage() {
       const { error: iErr } = await supabase.from("order_items").insert(rows);
       if (iErr) throw iErr;
 
+      // 2) Minta QRIS ke server (server → Louvin)
+      const res = await fetch("/api/pay/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: order.id }),
+      });
+      const pay = await res.json();
+      if (!res.ok) throw new Error(pay.error || "Gagal memproses pembayaran.");
+
+      // 3) Render QR string jadi gambar
+      const img = await QRCode.toDataURL(pay.qr_string, { width: 280, margin: 1 });
+
+      setKode(code);
+      setQrImg(img);
+      setAmount(pay.amount || total);
+      setExpiredAt(pay.expired_at || null);
       clearCart();
       try {
         localStorage.setItem("kantin_last_customer", JSON.stringify({ nama: nama.trim(), hp: hp.trim() }));
       } catch {}
-      router.push(`/order/${kode}?new=1`);
+      setStep(2);
     } catch (e) {
-      setError("Gagal membuat pesanan: " + (e.message || e));
-      setSubmitting(false);
+      setError("Gagal: " + (e.message || e));
     }
+    setProcessing(false);
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && step === 1) {
     return (
       <main className="container-app pt-16 text-center">
         <p className="text-ink-soft">Keranjang kosong.</p>
@@ -158,7 +142,9 @@ export default function CheckoutPage() {
           </div>
           <OrderSummary items={items} total={total} />
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button onClick={nextStep} className="btn-block">Lanjut ke Pembayaran</Button>
+          <Button onClick={proceedToPayment} loading={processing} className="btn-block">
+            Lanjut ke Pembayaran
+          </Button>
         </div>
       )}
 
@@ -166,55 +152,48 @@ export default function CheckoutPage() {
         <div className="space-y-4">
           <div className="card p-4 text-center">
             <h2 className="font-bold">Scan & Bayar via QRIS</h2>
-            <p className="mt-1 text-sm text-ink-soft">Total yang harus dibayar</p>
-            <p className="text-2xl font-extrabold text-primary">{rupiah(total)}</p>
-            <div className="mx-auto mt-4 w-56 overflow-hidden rounded-2xl border border-gray-100">
-              {settings?.qris_image_url ? (
+            <p className="mt-1 text-sm text-ink-soft">Bayar PERSIS sebesar</p>
+            <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
+            <p className="mt-0.5 text-xs text-ink-soft">Nominal unik — jangan dibulatkan agar terverifikasi otomatis</p>
+
+            <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
+              {qrImg ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={settings.qris_image_url} alt="QRIS" className="w-full" />
+                <img src={qrImg} alt="QRIS Pembayaran" className="w-full" />
               ) : (
                 <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">
-                  QRIS belum diatur admin
+                  Memuat QRIS...
                 </div>
               )}
             </div>
-            {settings?.qris_image_url && (
-              <Button variant="outline" onClick={downloadQris} loading={downloadingQ} className="mx-auto mt-3">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-                Unduh QRIS
-              </Button>
+
+            {remaining != null && (
+              <p className={`mt-3 text-sm font-semibold ${remaining === 0 ? "text-danger" : "text-ink-soft"}`}>
+                {remaining === 0 ? "QRIS kedaluwarsa — ulangi pemesanan." : `Berlaku ${fmtCountdown(remaining)}`}
+              </p>
             )}
-            <p className="mt-3 text-xs text-ink-soft">
-              Scan atau unduh QRIS di atas, bayar lewat m-banking / e-wallet sesuai nominal,
-              lalu unggah bukti pembayaran.
+
+            <p className="mt-2 text-xs text-ink-soft">
+              Scan QRIS di atas pakai aplikasi m-banking / e-wallet apa pun.
+              Status pesanan akan otomatis diperbarui setelah pembayaran terkonfirmasi.
             </p>
           </div>
 
-          <div className="card p-4">
-            <h3 className="mb-2 font-bold">Unggah Bukti Pembayaran</h3>
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 p-6 text-center">
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="bukti" className="max-h-48 rounded-lg" />
-              ) : (
-                <>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="1.6"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <span className="mt-2 text-sm text-ink-soft">Ketuk untuk pilih foto (JPG/PNG, maks 5MB)</span>
-                </>
-              )}
-              <input type="file" accept="image/*" className="hidden" onChange={onFile} />
-            </label>
-          </div>
-
           {error && <p className="text-sm text-danger">{error}</p>}
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Kembali</Button>
-            <Button onClick={submitOrder} loading={submitting} className="flex-1">Kirim Pesanan</Button>
-          </div>
+          <Button onClick={() => router.push(`/order/${kode}`)} className="btn-block">
+            Lihat Status Pesanan
+          </Button>
+          <Link href="/" className="btn-outline block text-center">Kembali ke Menu</Link>
         </div>
       )}
     </main>
   );
+}
+
+function fmtCountdown(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, "0");
+  const s = String(sec % 60).padStart(2, "0");
+  return `${m}:${s}`;
 }
 
 function StepDot({ n, active, label }) {
