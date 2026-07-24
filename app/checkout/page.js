@@ -22,8 +22,6 @@ export default function CheckoutPage() {
   const [kode, setKode] = useState("");
   const [qrImg, setQrImg] = useState("");
   const [amount, setAmount] = useState(0);
-  const [expiredAt, setExpiredAt] = useState(null);
-  const [remaining, setRemaining] = useState(null);
 
   useEffect(() => {
     setItems(getCart());
@@ -32,18 +30,6 @@ export default function CheckoutPage() {
       if (last) { setNama(last.nama || ""); setHp(last.hp || ""); }
     } catch {}
   }, []);
-
-  // Hitung mundur masa berlaku QRIS
-  useEffect(() => {
-    if (!expiredAt) return;
-    const tick = () => {
-      const ms = new Date(expiredAt).getTime() - Date.now();
-      setRemaining(Math.max(0, Math.floor(ms / 1000)));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [expiredAt]);
 
   const total = cartTotal(items);
 
@@ -92,7 +78,6 @@ export default function CheckoutPage() {
       setKode(code);
       setQrImg(img);
       setAmount(pay.amount || total);
-      setExpiredAt(pay.expired_at || null);
       clearCart();
       try {
         localStorage.setItem("kantin_last_customer", JSON.stringify({ nama: nama.trim(), hp: hp.trim() }));
@@ -167,12 +152,6 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {remaining != null && (
-              <p className={`mt-3 text-sm font-semibold ${remaining === 0 ? "text-danger" : "text-ink-soft"}`}>
-                {remaining === 0 ? "QRIS kedaluwarsa — ulangi pemesanan." : `Berlaku ${fmtCountdown(remaining)}`}
-              </p>
-            )}
-
             <p className="mt-2 text-xs text-ink-soft">
               Scan QRIS di atas pakai aplikasi m-banking / e-wallet apa pun.
               Status pesanan akan otomatis diperbarui setelah pembayaran terkonfirmasi.
@@ -188,12 +167,6 @@ export default function CheckoutPage() {
       )}
     </main>
   );
-}
-
-function fmtCountdown(sec) {
-  const m = String(Math.floor(sec / 60)).padStart(2, "0");
-  const s = String(sec % 60).padStart(2, "0");
-  return `${m}:${s}`;
 }
 
 function StepDot({ n, active, label }) {
