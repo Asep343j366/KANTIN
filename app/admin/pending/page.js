@@ -8,6 +8,7 @@ export default function PendingPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [settlingId, setSettlingId] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -21,7 +22,7 @@ export default function PendingPage() {
     const { data } = await supabase
       .from("orders")
       .select("id, kode_pesanan, nama_pelanggan, no_hp, total, amount_charged, payment_ref, payment_status, created_at")
-      .neq("payment_status", "paid")
+      .eq("payment_status", "pending")
       .order("created_at", { ascending: false });
     setOrders(data || []);
     setLoading(false);
@@ -49,6 +50,23 @@ export default function PendingPage() {
     setSettlingId(null);
     if (!res.ok) return setErr(j.error || "Gagal menandai lunas.");
     setMsg(`Pesanan ${o.kode_pesanan} berhasil ditandai lunas.`);
+    load();
+  }
+
+  async function cancel(o) {
+    setErr(""); setMsg("");
+    if (!confirm(`Batalkan pesanan ${o.kode_pesanan} (${o.nama_pelanggan})?\n\nGunakan untuk transaksi ganda atau yang sudah kamu catat manual di jurnal. Order akan hilang dari daftar ini.`)) return;
+    setCancelingId(o.id);
+    const t = await token();
+    const res = await fetch("/api/admin/order-cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ order_id: o.id }),
+    });
+    const j = await res.json();
+    setCancelingId(null);
+    if (!res.ok) return setErr(j.error || "Gagal membatalkan.");
+    setMsg(`Pesanan ${o.kode_pesanan} dibatalkan.`);
     load();
   }
 
@@ -91,6 +109,13 @@ export default function PendingPage() {
                 >
                   Tandai Lunas
                 </Button>
+                <button
+                  onClick={() => cancel(o)}
+                  disabled={cancelingId === o.id}
+                  className="text-sm font-semibold text-danger disabled:opacity-50"
+                >
+                  {cancelingId === o.id ? "..." : "Batalkan"}
+                </button>
               </div>
             </div>
           ))}

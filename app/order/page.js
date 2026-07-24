@@ -18,7 +18,7 @@ export default function OrderLookup() {
     setCustomer(last);
     if (last?.nama) {
       supabase.from("orders").select("*")
-        .eq("status", "selesai")
+        .in("status", ["selesai", "menunggu_pembayaran"])
         .eq("nama_pelanggan", last.nama)
         .order("created_at", { ascending: false })
         .then(({ data }) => {
@@ -76,7 +76,11 @@ export default function OrderLookup() {
               <Link key={o.id} href={`/order/${o.kode_pesanan}`} className="card block p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-bold">{o.kode_pesanan}</span>
-                  <span className="badge bg-green-100 text-green-700">Selesai</span>
+                  {o.payment_status === "paid" || o.status === "selesai" ? (
+                    <span className="badge bg-green-100 text-green-700">Selesai</span>
+                  ) : (
+                    <span className="badge bg-amber-100 text-amber-700">Menunggu Pembayaran</span>
+                  )}
                 </div>
                 <div className="mt-1 flex items-center justify-between text-sm text-ink-soft">
                   <span>{fmtDateTime(o.created_at)}</span>
