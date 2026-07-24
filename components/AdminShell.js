@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 const icons = {
   dashboard: "M3 12h4v8H3zM10 6h4v14h-4zM17 3h4v17h-4z",
   transaksi: "M6 2h9l3 3v17H6zM9 8h6M9 12h6M9 16h4",
+  menunggu: "M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z",
   produk: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8",
   inventory: "M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10",
   laporan: "M4 20V10M10 20V4M16 20v-7M22 20H2",
@@ -19,6 +20,7 @@ const icons = {
 const links = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/admin", label: "Transaksi", icon: "transaksi" },
+  { href: "/admin/pending", label: "Menunggu", icon: "menunggu" },
   { href: "/admin/products", label: "Produk", icon: "produk" },
   { href: "/admin/inventory", label: "Inventory", icon: "inventory" },
   { href: "/admin/reports", label: "Laporan", icon: "laporan" },
