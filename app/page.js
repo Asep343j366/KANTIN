@@ -120,7 +120,7 @@ export default function Landing() {
                 {/* mini header */}
                 <div className="bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pb-5 pt-4 text-white">
                   <p className="text-[9px] font-semibold uppercase tracking-wide text-white/60">Kantin Digital</p>
-                  <p className="text-sm font-extrabold">Warung Bu Sari</p>
+                  <p className="text-sm font-extrabold">Kantin Kejujuran Informa Bigmall</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 p-3">
                   {mockItems.map((it, i) => (
