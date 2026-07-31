@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore, clearStoreCache } from "@/lib/store";
 import Button from "@/components/Button";
 
 const icons = {
@@ -13,6 +14,9 @@ const icons = {
   inventory: "M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10",
   laporan: "M4 20V10M10 20V4M16 20v-7M22 20H2",
   jurnal: "M5 3h11l3 3v15H5zM16 3v3h3M9 12h6M9 16h6",
+  bayar: "M2 7h20v10H2zM2 11h20M6 15h4",
+  langganan: "M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6-6.3 4.6L7.9 14 2 9.4h7.6z",
+  store: "M3 9l1.5-5h15L21 9M4 9h16v11H4zM9 13h6",
   user: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M20 8v6M23 11h-6",
   setting: "M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.5 2h-5l-.3 2.9a7 7 0 00-1.7 1l-2.4-1-2 3.4L2.1 11a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.3 2.9h5l.3-2.9a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z",
 };
@@ -25,6 +29,9 @@ const links = [
   { href: "/admin/inventory", label: "Inventory", icon: "inventory" },
   { href: "/admin/reports", label: "Laporan", icon: "laporan" },
   { href: "/admin/journal", label: "Jurnal", icon: "jurnal" },
+  { href: "/admin/payment", label: "Pembayaran", icon: "bayar" },
+  { href: "/admin/subscription", label: "Langganan", icon: "langganan" },
+  { href: "/admin/stores", label: "Kelola Store", icon: "store", platformOnly: true },
   { href: "/admin/users", label: "User", icon: "user" },
   { href: "/admin/settings", label: "Pengaturan", icon: "setting" },
 ];
@@ -43,20 +50,30 @@ export default function AdminShell({ children }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [store, setStore] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || ""));
+    getMyStore().then(setStore);
   }, []);
 
   async function logout() {
     setLoggingOut(true);
+    clearStoreCache();
     await supabase.auth.signOut();
     router.replace("/admin/login");
   }
 
   const current = links.find((l) => (l.href === "/admin" ? pathname === "/admin" : pathname.startsWith(l.href)));
+
+  // Kunci admin bila store nonaktif/suspended (kecuali platform-admin & halaman Langganan)
+  const st = store?.store?.status;
+  const locked =
+    store && !store.is_platform_admin &&
+    (st === "nonaktif" || st === "suspended") &&
+    !pathname.startsWith("/admin/subscription");
 
   const Sidebar = (
     <aside className="flex h-full w-52 flex-col border-r border-gray-100 bg-gradient-to-b from-white to-[#F5F8FC]">
@@ -66,12 +83,17 @@ export default function AdminShell({ children }) {
           <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Admin Panel</p>
-          <p className="truncate text-[13px] font-extrabold text-ink">Big Mall Kantin</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-soft">
+            {store?.is_platform_admin ? "Admin Panel · Platform" : "Admin Panel"}
+          </p>
+          <p className="truncate text-[13px] font-extrabold text-ink">{store?.store?.nama || "Kantin"}</p>
+          {store?.store?.kode_site && (
+            <p className="truncate text-[9px] font-semibold text-ink-soft">Site {store.store.kode_site}</p>
+          )}
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 px-2.5 py-3">
-        {links.map((l) => {
+        {links.filter((l) => !l.platformOnly || store?.is_platform_admin).map((l) => {
           const active = l.href === "/admin" ? pathname === "/admin" : pathname.startsWith(l.href);
           return (
             <Link key={l.href} href={l.href}
@@ -121,7 +143,17 @@ export default function AdminShell({ children }) {
           <h1 className="text-base font-extrabold text-ink">{current?.label || "Dashboard"}</h1>
         </header>
 
-        <main className="mx-auto max-w-4xl px-4 py-5">{children}</main>
+        <main className="mx-auto max-w-4xl px-4 py-5">
+          {locked ? (
+            <div className="card p-6 text-center">
+              <h2 className="text-lg font-extrabold">Langganan tidak aktif</h2>
+              <p className="mt-1 text-sm text-ink-soft">
+                Store ini sedang nonaktif. Perpanjang langganan untuk membuka kembali panel admin & storefront.
+              </p>
+              <Link href="/admin/subscription" className="btn-primary mt-4 inline-flex">Buka Halaman Langganan</Link>
+            </div>
+          ) : children}
+        </main>
       </div>
     </div>
   );

@@ -4,6 +4,9 @@
   "buildCommand": "next build",
   "devCommand": "next dev",
   "installCommand": "npm install",
+  "crons": [
+    { "path": "/api/cron/subscription", "schedule": "0 1 * * *" }
+  ],
   "headers": [
     {
       "source": "/sw.js",

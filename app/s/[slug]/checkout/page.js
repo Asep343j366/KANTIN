@@ -6,10 +6,14 @@ import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
 import { getCart, cartTotal, clearCart } from "@/lib/cart";
 import { rupiah, orderCode } from "@/lib/format";
+import { useSlug, storePath } from "@/lib/slug";
+import { useStore } from "../StoreProvider";
 import Button from "@/components/Button";
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const slug = useSlug();
+  const store = useStore();
   const [items, setItems] = useState([]);
   const [step, setStep] = useState(1); // 1 = data, 2 = bayar QRIS
   const [nama, setNama] = useState("");
@@ -22,6 +26,8 @@ export default function CheckoutPage() {
   const [kode, setKode] = useState("");
   const [qrImg, setQrImg] = useState("");
   const [amount, setAmount] = useState(0);
+  const [payMode, setPayMode] = useState("casaku");
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     setItems(getCart());
@@ -31,10 +37,17 @@ export default function CheckoutPage() {
     } catch {}
   }, []);
 
+  useEffect(() => {
+    if (!store?.id) return;
+    supabase.from("settings").select("qris_image_url, info_rekening").eq("store_id", store.id).maybeSingle()
+      .then(({ data }) => setSettings(data || null));
+  }, [store?.id]);
+
   const total = cartTotal(items);
 
   async function proceedToPayment() {
     setError("");
+    if (!store?.id) return setError("Toko tidak dikenali. Muat ulang halaman.");
     if (!nama.trim()) return setError("Nama wajib diisi.");
     if (!/^0[0-9]{8,13}$/.test(hp.trim())) return setError("Nomor HP tidak valid (contoh: 08123456789).");
     setProcessing(true);
@@ -43,6 +56,7 @@ export default function CheckoutPage() {
 
       // 1) Buat order (menunggu pembayaran) + item
       const { data: order, error: oErr } = await supabase.from("orders").insert({
+        store_id: store.id,
         kode_pesanan: code,
         nama_pelanggan: nama.trim(),
         no_hp: hp.trim(),
@@ -53,6 +67,7 @@ export default function CheckoutPage() {
       if (oErr) throw oErr;
 
       const rows = items.map((i) => ({
+        store_id: store.id,
         order_id: order.id,
         product_id: i.id,
         nama_produk: i.nama,
@@ -63,7 +78,7 @@ export default function CheckoutPage() {
       const { error: iErr } = await supabase.from("order_items").insert(rows);
       if (iErr) throw iErr;
 
-      // 2) Minta QRIS ke server (server → Louvin)
+      // 2) Minta QRIS ke server (server → Casaku)
       const res = await fetch("/api/pay/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,11 +87,14 @@ export default function CheckoutPage() {
       const pay = await res.json();
       if (!res.ok) throw new Error(pay.error || "Gagal memproses pembayaran.");
 
-      // 3) Render QR string jadi gambar
-      const img = await QRCode.toDataURL(pay.qr_string, { width: 280, margin: 1 });
+      setPayMode(pay.mode || "casaku");
+      // 3) Mode Casaku: render QR dinamis jadi gambar. Mode manual: pakai QRIS statis/rekening.
+      if (pay.mode === "casaku" && pay.qr_string) {
+        const img = await QRCode.toDataURL(pay.qr_string, { width: 280, margin: 1 });
+        setQrImg(img);
+      }
 
       setKode(code);
-      setQrImg(img);
       setAmount(pay.amount || total);
       clearCart();
       try {
@@ -93,7 +111,7 @@ export default function CheckoutPage() {
     return (
       <main className="container-app pt-16 text-center">
         <p className="text-ink-soft">Keranjang kosong.</p>
-        <Link href="/" className="btn-primary mt-4 inline-flex">Lihat Menu</Link>
+        <Link href={storePath(slug)} className="btn-primary mt-4 inline-flex">Lihat Menu</Link>
       </main>
     );
   }
@@ -135,34 +153,62 @@ export default function CheckoutPage() {
 
       {step === 2 && (
         <div className="space-y-4">
-          <div className="card p-4 text-center">
-            <h2 className="font-bold">Scan & Bayar via QRIS</h2>
-            <p className="mt-1 text-sm text-ink-soft">Bayar PERSIS sebesar</p>
-            <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
-            <p className="mt-0.5 text-xs text-ink-soft">Nominal unik — jangan dibulatkan agar terverifikasi otomatis</p>
+          {payMode === "casaku" ? (
+            <div className="card p-4 text-center">
+              <h2 className="font-bold">Scan & Bayar via QRIS</h2>
+              <p className="mt-1 text-sm text-ink-soft">Bayar PERSIS sebesar</p>
+              <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
+              <p className="mt-0.5 text-xs text-ink-soft">Nominal unik — jangan dibulatkan agar terverifikasi otomatis</p>
 
-            <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
-              {qrImg ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={qrImg} alt="QRIS Pembayaran" className="w-full" />
-              ) : (
-                <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">
-                  Memuat QRIS...
+              <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
+                {qrImg ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrImg} alt="QRIS Pembayaran" className="w-full" />
+                ) : (
+                  <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">
+                    Memuat QRIS...
+                  </div>
+                )}
+              </div>
+
+              <p className="mt-2 text-xs text-ink-soft">
+                Scan QRIS di atas pakai aplikasi m-banking / e-wallet apa pun.
+                Status pesanan akan otomatis diperbarui setelah pembayaran terkonfirmasi.
+              </p>
+            </div>
+          ) : (
+            <div className="card p-4 text-center">
+              <h2 className="font-bold">Selesaikan Pembayaran</h2>
+              <p className="mt-1 text-sm text-ink-soft">Bayar sebesar</p>
+              <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
+
+              {settings?.qris_image_url && (
+                <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={settings.qris_image_url} alt="QRIS" className="w-full" />
                 </div>
               )}
-            </div>
+              {settings?.info_rekening && (
+                <div className="mx-auto mt-3 max-w-xs whitespace-pre-line rounded-xl bg-surface p-3 text-left text-sm">
+                  {settings.info_rekening}
+                </div>
+              )}
+              {!settings?.qris_image_url && !settings?.info_rekening && (
+                <p className="mt-3 text-sm text-ink-soft">Hubungi kasir untuk instruksi pembayaran.</p>
+              )}
 
-            <p className="mt-2 text-xs text-ink-soft">
-              Scan QRIS di atas pakai aplikasi m-banking / e-wallet apa pun.
-              Status pesanan akan otomatis diperbarui setelah pembayaran terkonfirmasi.
-            </p>
-          </div>
+              <p className="mt-3 text-xs text-ink-soft">
+                Setelah membayar, pesananmu akan dikonfirmasi oleh kasir. Status akan
+                diperbarui otomatis begitu pembayaran diverifikasi.
+              </p>
+            </div>
+          )}
 
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button onClick={() => router.push(`/order/${kode}`)} className="btn-block">
+          <Button onClick={() => router.push(storePath(slug, `/order/${kode}`))} className="btn-block">
             Lihat Status Pesanan
           </Button>
-          <Link href="/" className="btn-outline block text-center">Kembali ke Menu</Link>
+          <Link href={storePath(slug)} className="btn-outline block text-center">Kembali ke Menu</Link>
         </div>
       )}
     </main>

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { rupiah } from "@/lib/format";
 import { addToCart, getQtyById, decById } from "@/lib/cart";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
+import { useSlug, storePath } from "@/lib/slug";
 
 export default function ProductCard({ product }) {
+  const slug = useSlug();
   const habis = !product.tersedia || product.stok <= 0;
   const [qty, setQty] = useState(0);
   const [fav, setFav] = useState(false);
@@ -24,7 +26,7 @@ export default function ProductCard({ product }) {
 
   return (
     <div className="card relative overflow-hidden">
-      <Link href={`/product/${product.id}`} className="block">
+      <Link href={storePath(slug, `/product/${product.id}`)} className="block">
         <div className="relative aspect-square bg-surface">
           {product.foto_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +58,7 @@ export default function ProductCard({ product }) {
       </button>
 
       <div className="p-3">
-        <Link href={`/product/${product.id}`}>
+        <Link href={storePath(slug, `/product/${product.id}`)}>
           <h3 className="line-clamp-1 text-sm font-semibold">{product.nama}</h3>
         </Link>
         <div className="mt-1 flex items-center justify-between">

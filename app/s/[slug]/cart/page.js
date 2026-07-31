@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getCart, updateQty, removeItem, cartTotal } from "@/lib/cart";
 import { rupiah } from "@/lib/format";
+import { useSlug, storePath } from "@/lib/slug";
 
 export default function CartPage() {
+  const slug = useSlug();
   const [items, setItems] = useState([]);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function CartPage() {
         </div>
         <h1 className="text-lg font-bold">Keranjang kosong</h1>
         <p className="mt-1 text-sm text-ink-soft">Yuk pilih menu favoritmu.</p>
-        <Link href="/" className="btn-primary mt-6 inline-flex">Lihat Menu</Link>
+        <Link href={storePath(slug)} className="btn-primary mt-6 inline-flex">Lihat Menu</Link>
       </main>
     );
   }
@@ -68,7 +70,7 @@ export default function CartPage() {
             <p className="text-xs text-ink-soft">Total ({items.reduce((s,i)=>s+i.qty,0)} item)</p>
             <p className="text-lg font-extrabold text-primary">{rupiah(total)}</p>
           </div>
-          <Link href="/checkout" className="btn-primary flex-1">Checkout</Link>
+          <Link href={storePath(slug, "/checkout")} className="btn-primary flex-1">Checkout</Link>
         </div>
       </div>
     </main>

@@ -4,8 +4,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import { useSlug, storePath } from "@/lib/slug";
+import { useStore } from "../StoreProvider";
 
 export default function OrderLookup() {
+  const slug = useSlug();
+  const store = useStore();
   const [kode, setKode] = useState("");
   const [customer, setCustomer] = useState(null);
   const [history, setHistory] = useState([]);
@@ -13,11 +17,13 @@ export default function OrderLookup() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!store?.id) return;
     let last = null;
     try { last = JSON.parse(localStorage.getItem("kantin_last_customer") || "null"); } catch {}
     setCustomer(last);
     if (last?.nama) {
       supabase.from("orders").select("*")
+        .eq("store_id", store.id)
         .in("status", ["selesai", "menunggu_pembayaran"])
         .eq("nama_pelanggan", last.nama)
         .order("created_at", { ascending: false })
@@ -34,7 +40,7 @@ export default function OrderLookup() {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [store?.id]);
 
   return (
     <main className="container-app pb-10 pt-6">
@@ -48,7 +54,7 @@ export default function OrderLookup() {
           <input value={kode} onChange={(e) => setKode(e.target.value.toUpperCase())}
             placeholder="KTN-XXXXXX-XXXX" className="input" />
           <button
-            onClick={() => kode.trim() && router.push(`/order/${kode.trim()}`)}
+            onClick={() => kode.trim() && router.push(storePath(slug, `/order/${kode.trim()}`))}
             className="btn-primary shrink-0">Lihat</button>
         </div>
       </div>
@@ -73,7 +79,7 @@ export default function OrderLookup() {
         ) : (
           <div className="space-y-3">
             {history.map((o) => (
-              <Link key={o.id} href={`/order/${o.kode_pesanan}`} className="card block p-4">
+              <Link key={o.id} href={storePath(slug, `/order/${o.kode_pesanan}`)} className="card block p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-bold">{o.kode_pesanan}</span>
                   {o.payment_status === "paid" || o.status === "selesai" ? (

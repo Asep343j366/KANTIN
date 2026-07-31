@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import Button from "@/components/Button";
 
@@ -14,9 +15,11 @@ export default function InventoryPage() {
   const [me, setMe] = useState("admin");
 
   async function load() {
+    const s = await getMyStore();
+    if (!s?.store_id) { setProducts([]); setMoves([]); return; }
     const [{ data: p }, { data: m }] = await Promise.all([
-      supabase.from("products").select("id,nama,harga,hpp,stok,tersedia").order("nama"),
-      supabase.from("stock_movements").select("*").order("created_at", { ascending: false }).limit(40),
+      supabase.from("products").select("id,nama,harga,hpp,stok,tersedia").eq("store_id", s.store_id).order("nama"),
+      supabase.from("stock_movements").select("*").eq("store_id", s.store_id).order("created_at", { ascending: false }).limit(40),
     ]);
     setProducts(p || []); setMoves(m || []);
   }

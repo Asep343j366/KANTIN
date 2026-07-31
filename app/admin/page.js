@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 
 export default function AdminTransaksi() {
@@ -14,10 +15,12 @@ export default function AdminTransaksi() {
   const [q, setQ] = useState("");
 
   async function load() {
+    const s = await getMyStore();
+    if (!s?.store_id) { setOrders([]); setItems([]); setProducts([]); return; }
     const [{ data: o }, { data: it }, { data: p }] = await Promise.all([
-      supabase.from("orders").select("*").eq("status", "selesai").order("created_at", { ascending: false }),
-      supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah"),
-      supabase.from("products").select("id,nama"),
+      supabase.from("orders").select("*").eq("store_id", s.store_id).eq("status", "selesai").order("created_at", { ascending: false }),
+      supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", s.store_id),
+      supabase.from("products").select("id,nama").eq("store_id", s.store_id),
     ]);
     setOrders(o || []); setItems(it || []); setProducts(p || []);
   }

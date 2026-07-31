@@ -17,7 +17,14 @@ async function requireAuth(request) {
   const client = createClient(url, anon, { auth: { persistSession: false } });
   const { data, error } = await client.auth.getUser(token);
   if (error || !data?.user) return null;
-  return data.user;
+  const { data: mem } = await admin()
+    .from("store_members")
+    .select("store_id")
+    .eq("user_id", data.user.id)
+    .limit(1)
+    .maybeSingle();
+  if (!mem?.store_id) return null;
+  return { user: data.user, store_id: mem.store_id };
 }
 
 // Batalkan pesanan yang menggantung (belum lunas) — mis. transaksi ganda atau
@@ -35,10 +42,12 @@ export async function POST(request) {
 
   const { data: order, error } = await db
     .from("orders")
-    .select("id, payment_status")
+    .select("id, payment_status, store_id")
     .eq("id", order_id)
     .single();
   if (error || !order) return Response.json({ error: "Order tidak ditemukan" }, { status: 404 });
+  if (order.store_id !== me.store_id)
+    return Response.json({ error: "Order bukan milik store Anda." }, { status: 403 });
   if (order.payment_status === "paid")
     return Response.json({ error: "Order sudah lunas, tidak bisa dibatalkan." }, { status: 400 });
 

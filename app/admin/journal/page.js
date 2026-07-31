@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/compressImage";
 import Button from "@/components/Button";
@@ -25,7 +26,9 @@ export default function JournalPage() {
   const [detail, setDetail] = useState(null);
 
   async function load() {
-    const { data } = await supabase.from("journal").select("*").order("created_at", { ascending: false });
+    const s = await getMyStore();
+    if (!s?.store_id) { setRows([]); return; }
+    const { data } = await supabase.from("journal").select("*").eq("store_id", s.store_id).order("created_at", { ascending: false });
     setRows(data || []);
   }
   useEffect(() => {

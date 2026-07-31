@@ -5,10 +5,11 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { addToCart } from "@/lib/cart";
 import { rupiah } from "@/lib/format";
+import { storePath } from "@/lib/slug";
 import Button from "@/components/Button";
 
 export default function ProductDetail() {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const router = useRouter();
   const [p, setP] = useState(null);
   const [qty, setQty] = useState(1);
@@ -40,7 +41,7 @@ export default function ProductDetail() {
             Tidak ada foto
           </div>
         )}
-        <Link href="/" className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow-card">
+        <Link href={storePath(slug)} className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow-card">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </Link>
       </div>
@@ -80,7 +81,7 @@ export default function ProductDetail() {
           <Button
             disabled={habis}
             loading={adding}
-            onClick={() => { setAdding(true); addToCart(p, qty, note); router.push("/cart"); }}
+            onClick={() => { setAdding(true); addToCart(p, qty, note); router.push(storePath(slug, "/cart")); }}
             className="flex-1"
           >
             {habis ? "Stok Habis" : "Tambah ke Keranjang"}

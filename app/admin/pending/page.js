@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import Button from "@/components/Button";
 
@@ -19,9 +20,12 @@ export default function PendingPage() {
 
   async function load() {
     setLoading(true);
+    const s = await getMyStore();
+    if (!s?.store_id) { setOrders([]); setLoading(false); return; }
     const { data } = await supabase
       .from("orders")
       .select("id, kode_pesanan, nama_pelanggan, no_hp, total, amount_charged, payment_ref, payment_status, created_at")
+      .eq("store_id", s.store_id)
       .eq("payment_status", "pending")
       .order("created_at", { ascending: false });
     setOrders(data || []);

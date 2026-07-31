@@ -1,19 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore } from "@/lib/store";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
 
 export default function AdminSettings() {
   const [s, setS] = useState(null);
+  const [storeId, setStoreId] = useState(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    supabase.from("settings").select("*").eq("id", 1).single()
-      .then(({ data }) => { setS(data || { id: 1 }); setPreview(data?.qris_image_url || null); });
+    (async () => {
+      const st = await getMyStore();
+      if (!st?.store_id) { setS({}); return; }
+      setStoreId(st.store_id);
+      const { data } = await supabase.from("settings").select("*").eq("store_id", st.store_id).maybeSingle();
+      setS(data || {});
+      setPreview(data?.qris_image_url || null);
+    })();
   }, []);
 
   const set = (k, v) => setS((p) => ({ ...p, [k]: v }));
@@ -36,16 +44,18 @@ export default function AdminSettings() {
         if (error) throw error;
         qris_image_url = supabase.storage.from("qris").getPublicUrl(path).data.publicUrl;
       }
+      if (!storeId) throw new Error("Store tidak dikenali.");
       const payload = {
-        id: 1,
+        store_id: storeId,
         nama_kantin: s.nama_kantin || "Kantin Digital",
         no_wa_admin: s.no_wa_admin || null,
         jam_operasional: s.jam_operasional || null,
         alamat: s.alamat || null,
+        info_rekening: s.info_rekening || null,
         stok_menipis_threshold: parseInt(s.stok_menipis_threshold) || 5,
         qris_image_url: qris_image_url || null,
       };
-      const { error } = await supabase.from("settings").upsert(payload);
+      const { error } = await supabase.from("settings").upsert(payload, { onConflict: "store_id" });
       if (error) throw error;
       setMsg("Tersimpan.");
     } catch (e) {
@@ -86,10 +96,16 @@ export default function AdminSettings() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-semibold">Gambar QRIS Statis</label>
+          <p className="mb-1 text-xs text-ink-soft">Dipakai saat mode pembayaran <b>Manual</b> — ditampilkan ke pelanggan di halaman pembayaran.</p>
           <input type="file" accept="image/*" onChange={onFile} />
           {preview && /* eslint-disable-next-line @next/next/no-img-element */ (
             <img src={preview} alt="QRIS" className="mt-2 w-48 rounded-xl border border-gray-100" />
           )}
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">Info Rekening / Instruksi Bayar (Manual)</label>
+          <textarea className="input" rows={2} value={s.info_rekening || ""} onChange={(e) => set("info_rekening", e.target.value)}
+            placeholder="Contoh: BCA 1234567890 a.n. Budi — atau instruksi pembayaran lain" />
         </div>
         {msg && <p className="text-sm text-primary">{msg}</p>}
         <Button onClick={save} loading={saving} className="btn-block">Simpan Pengaturan</Button>

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getMyStore } from "@/lib/store";
 import { rupiah } from "@/lib/format";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
@@ -13,9 +14,11 @@ export default function AdminProducts() {
   const [editing, setEditing] = useState(null);
 
   async function load() {
+    const s = await getMyStore();
+    if (!s?.store_id) { setProducts([]); setCategories([]); return; }
     const [{ data: p }, { data: c }] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
-      supabase.from("categories").select("*").order("urutan"),
+      supabase.from("products").select("*").eq("store_id", s.store_id).order("created_at", { ascending: false }),
+      supabase.from("categories").select("*").eq("store_id", s.store_id).order("urutan"),
     ]);
     setProducts(p || []);
     setCategories(c || []);

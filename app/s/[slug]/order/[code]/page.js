@@ -4,10 +4,11 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import { storePath } from "@/lib/slug";
 import Receipt from "@/components/Receipt";
 
 export default function OrderStatus() {
-  const { code } = useParams();
+  const { code, slug } = useParams();
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -19,7 +20,7 @@ export default function OrderStatus() {
     if (o) {
       const [{ data: its }, { data: set }] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", o.id),
-        supabase.from("settings").select("*").eq("id", 1).single(),
+        supabase.from("settings").select("*").eq("store_id", o.store_id).maybeSingle(),
       ]);
       setItems(its || []);
       setSettings(set || null);
@@ -30,7 +31,7 @@ export default function OrderStatus() {
 
   useEffect(() => {
     loadOrder();
-    // Realtime: begitu webhook Louvin menandai order lunas, layar ikut berubah
+    // Realtime: begitu webhook Casaku menandai order lunas, layar ikut berubah
     const ch = supabase
       .channel(`order-${code}`)
       .on(
@@ -46,7 +47,7 @@ export default function OrderStatus() {
   if (!order) return (
     <main className="container-app pt-16 text-center">
       <p className="text-ink-soft">Pesanan <b>{code}</b> tidak ditemukan.</p>
-      <Link href="/order" className="btn-primary mt-4 inline-flex">Coba Lagi</Link>
+      <Link href={storePath(slug, "/order")} className="btn-primary mt-4 inline-flex">Coba Lagi</Link>
     </main>
   );
 
@@ -112,7 +113,7 @@ export default function OrderStatus() {
           Lihat Struk Digital
         </button>
       )}
-      <Link href="/" className="btn-outline mt-3 w-full">Kembali ke Menu</Link>
+      <Link href={storePath(slug)} className="btn-outline mt-3 w-full">Kembali ke Menu</Link>
 
       {showReceipt && (
         <Receipt order={order} items={items} settings={settings} onClose={() => setShowReceipt(false)} />
