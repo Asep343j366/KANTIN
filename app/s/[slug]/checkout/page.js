@@ -48,6 +48,7 @@ export default function CheckoutPage() {
   async function proceedToPayment() {
     setError("");
     if (!store?.id) return setError("Toko tidak dikenali. Muat ulang halaman.");
+    if (store.is_demo) return setError("Ini toko demo — transaksi dinonaktifkan.");
     if (!nama.trim()) return setError("Nama wajib diisi.");
     if (!/^0[0-9]{8,13}$/.test(hp.trim())) return setError("Nomor HP tidak valid (contoh: 08123456789).");
     setProcessing(true);

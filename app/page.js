@@ -7,20 +7,56 @@ const DEFAULT_WA = "6281234567890";
 const waHref = (wa) =>
   `https://wa.me/${wa || DEFAULT_WA}?text=${encodeURIComponent("Halo, saya mau berlangganan KANTIN Digital untuk toko saya.")}`;
 
+// Format harga dgn pemisah ribuan. Bila user isi angka ("50000" / "50.000") →
+// "Rp50.000". Bila teks bebas → tampilkan apa adanya.
+function formatHarga(label) {
+  if (!label) return "Rp‑";
+  const clean = String(label).replace(/[.\s]/g, "");
+  if (/^\d+$/.test(clean)) return "Rp" + Number(clean).toLocaleString("id-ID");
+  return label;
+}
+
+const FALLBACK_MENU = [
+  { nama: "Nasi Goreng", harga: 15000 },
+  { nama: "Es Teh", harga: 5000 },
+  { nama: "Ayam Geprek", harga: 18000 },
+  { nama: "Kopi Susu", harga: 10000 },
+];
+
 export default function Landing() {
   const [demoSlug, setDemoSlug] = useState(null);
   const [plat, setPlat] = useState(null);
+  const [mock, setMock] = useState([]);
 
   useEffect(() => {
-    supabase.from("stores").select("slug").eq("is_platform_admin", true).limit(1).maybeSingle()
-      .then(({ data }) => setDemoSlug(data?.slug || null));
-    supabase.from("platform_settings").select("wa_number, harga_label, harga_note").eq("id", 1).maybeSingle()
-      .then(({ data }) => setPlat(data || null));
+    (async () => {
+      // "Lihat Demo" hanya ke toko demo (is_demo), BUKAN toko platform/J366.
+      const { data: demo } = await supabase.from("stores").select("id, slug").eq("is_demo", true).limit(1).maybeSingle();
+      setDemoSlug(demo?.slug || null);
+
+      // Foto mockup: dari toko demo, fallback toko platform.
+      let srcId = demo?.id;
+      if (!srcId) {
+        const { data: p } = await supabase.from("stores").select("id").eq("is_platform_admin", true).limit(1).maybeSingle();
+        srcId = p?.id;
+      }
+      if (srcId) {
+        const { data: prods } = await supabase.from("products")
+          .select("nama, harga, foto_url").eq("store_id", srcId)
+          .not("foto_url", "is", null).eq("tersedia", true)
+          .order("created_at", { ascending: false }).limit(4);
+        setMock(prods || []);
+      }
+
+      const { data: ps } = await supabase.from("platform_settings").select("wa_number, harga_label, harga_note").eq("id", 1).maybeSingle();
+      setPlat(ps || null);
+    })();
   }, []);
 
   const waLink = waHref(plat?.wa_number);
-  const hargaLabel = plat?.harga_label || "Rp‑";
+  const hargaLabel = formatHarga(plat?.harga_label);
   const hargaNote = plat?.harga_note || "Hubungi kami untuk harga & aktivasi.";
+  const mockItems = (mock.length ? mock : FALLBACK_MENU).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-white text-ink">
@@ -87,12 +123,17 @@ export default function Landing() {
                   <p className="text-sm font-extrabold">Warung Bu Sari</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 p-3">
-                  {[["Nasi Goreng", "15.000"], ["Es Teh", "5.000"], ["Ayam Geprek", "18.000"], ["Kopi Susu", "10.000"]].map(([n, h], i) => (
+                  {mockItems.map((it, i) => (
                     <div key={i} className="rounded-xl bg-white p-2 shadow-card">
-                      <div className="h-14 rounded-lg bg-gradient-to-br from-primary-light to-[#EAF7EE]" />
-                      <p className="mt-1.5 truncate text-[10px] font-bold">{n}</p>
+                      {it.foto_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={it.foto_url} alt={it.nama} className="h-14 w-full rounded-lg object-cover" />
+                      ) : (
+                        <div className="h-14 rounded-lg bg-gradient-to-br from-primary-light to-[#EAF7EE]" />
+                      )}
+                      <p className="mt-1.5 truncate text-[10px] font-bold">{it.nama}</p>
                       <div className="mt-0.5 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-primary">Rp{h}</span>
+                        <span className="text-[10px] font-bold text-primary">Rp{Number(it.harga || 0).toLocaleString("id-ID")}</span>
                         <span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-[11px] font-bold text-white">+</span>
                       </div>
                     </div>

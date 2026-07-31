@@ -41,5 +41,14 @@ export default function StoreProvider({ children }) {
       </div>
     );
   }
-  return <StoreCtx.Provider value={state.store}>{children}</StoreCtx.Provider>;
+  return (
+    <StoreCtx.Provider value={state.store}>
+      {state.store.is_demo && (
+        <div className="sticky top-0 z-50 bg-amber-400 px-4 py-1.5 text-center text-[11px] font-bold text-amber-950">
+          🔍 Mode Demo — hanya untuk melihat-lihat, transaksi dinonaktifkan.
+        </div>
+      )}
+      {children}
+    </StoreCtx.Provider>
+  );
 }

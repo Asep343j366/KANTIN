@@ -10,7 +10,7 @@ async function token() {
   return data.session?.access_token;
 }
 
-const empty = { kode_site: "", nama: "", owner_email: "", owner_password: "", trial_days: 0 };
+const empty = { kode_site: "", nama: "", owner_email: "", owner_password: "", trial_days: 0, is_demo: false };
 
 export default function StoresPage() {
   const [allowed, setAllowed] = useState(null);
@@ -89,6 +89,10 @@ export default function StoresPage() {
         <F label="Trial (hari, 0 = langsung nonaktif)">
           <input className="input" type="number" min="0" value={f.trial_days} onChange={(e) => set("trial_days", parseInt(e.target.value) || 0)} />
         </F>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={f.is_demo} onChange={(e) => set("is_demo", e.target.checked)} />
+          Jadikan toko demo (bisa dilihat publik, tanpa transaksi, selalu aktif)
+        </label>
         {msg && <p className="text-sm text-success">{msg}</p>}
         {err && <p className="text-sm text-danger">{err}</p>}
         <Button onClick={create} loading={saving} className="btn-block">Buat Store</Button>
@@ -107,7 +111,7 @@ export default function StoresPage() {
             <div key={s.id} className="card p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-semibold">{s.nama} {s.is_platform_admin && <span className="text-[10px] text-primary">(platform)</span>}</p>
+                  <p className="font-semibold">{s.nama} {s.is_platform_admin && <span className="text-[10px] text-primary">(platform)</span>} {s.is_demo && <span className="badge bg-amber-100 text-amber-700">demo</span>}</p>
                   <p className="text-xs text-ink-soft">Site {s.kode_site} · /s/{s.slug} · {s.owner_email || "—"}</p>
                   <p className="text-xs text-ink-soft">Aktif s/d: {until ? fmtDateTime(until.toISOString()) : "—"}</p>
                 </div>
@@ -120,6 +124,9 @@ export default function StoresPage() {
                   {s.status === "suspended"
                     ? <button onClick={() => action(s.id, "activate")} className="rounded-lg bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">Aktifkan</button>
                     : <button onClick={() => action(s.id, "suspend")} className="rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold">Suspend</button>}
+                  {s.is_demo
+                    ? <button onClick={() => action(s.id, "demo_off")} className="rounded-lg bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">Batal Demo</button>
+                    : <button onClick={() => action(s.id, "demo_on")} className="rounded-lg bg-surface px-2 py-1 text-xs font-semibold">Jadikan Demo</button>}
                 </div>
               )}
             </div>

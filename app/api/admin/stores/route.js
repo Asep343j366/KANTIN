@@ -42,7 +42,7 @@ export async function GET(request) {
   const db = admin();
   const { data: stores } = await db
     .from("stores")
-    .select("id, kode_site, slug, nama, status, is_platform_admin, langganan_until, created_at")
+    .select("id, kode_site, slug, nama, status, is_platform_admin, is_demo, langganan_until, created_at")
     .order("created_at", { ascending: true });
 
   // Peta owner email
@@ -65,6 +65,7 @@ export async function POST(request) {
   const owner_email = (b.owner_email || "").trim();
   const owner_password = b.owner_password || "";
   const trial_days = parseInt(b.trial_days) || 0;
+  const is_demo = !!b.is_demo;
 
   if (!kode_site || !nama) return Response.json({ error: "Kode Site & Nama wajib." }, { status: 400 });
   if (!owner_email || owner_password.length < 6)
@@ -87,8 +88,10 @@ export async function POST(request) {
       kode_site,
       slug: makeSlug(kode_site),
       nama,
-      status: trial_days > 0 ? "aktif" : "nonaktif",
-      langganan_until,
+      is_demo,
+      // Toko demo selalu aktif (tak tunduk langganan).
+      status: is_demo || trial_days > 0 ? "aktif" : "nonaktif",
+      langganan_until: is_demo ? null : langganan_until,
     })
     .select()
     .single();
@@ -133,6 +136,8 @@ export async function PATCH(request) {
   let patch = {};
   if (action === "suspend") patch = { status: "suspended" };
   else if (action === "activate") patch = { status: "aktif" };
+  else if (action === "demo_on") patch = { is_demo: true, status: "aktif" };
+  else if (action === "demo_off") patch = { is_demo: false };
   else if (action === "extend") {
     const days = parseInt(b.days) || 0;
     if (days < 1) return Response.json({ error: "Jumlah hari tidak valid." }, { status: 400 });

@@ -6,9 +6,10 @@ import { addToCart, getQtyById, decById } from "@/lib/cart";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { useSlug, storePath } from "@/lib/slug";
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, demo }) {
   const slug = useSlug();
   const habis = !product.tersedia || product.stok <= 0;
+  const disabled = habis || demo;
   const [qty, setQty] = useState(0);
   const [fav, setFav] = useState(false);
 
@@ -74,7 +75,7 @@ export default function ProductCard({ product }) {
               </button>
               <span className="w-4 text-center text-xs font-bold">{qty}</span>
               <button
-                disabled={habis}
+                disabled={disabled}
                 onClick={() => addToCart(product, 1)}
                 className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-[#2E86FF] to-[#1657C0] text-white shadow-card disabled:opacity-40"
                 aria-label="Tambah">

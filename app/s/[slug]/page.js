@@ -88,7 +88,7 @@ export default function CatalogPage() {
           <div className="py-16 text-center text-ink-soft">Tidak ada produk ditemukan.</div>
         ) : (
           <div className="grid grid-cols-2 gap-3 pt-2">
-            {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
+            {filtered.map((p) => <ProductCard key={p.id} product={p} demo={store?.is_demo} />)}
           </div>
         )}
       </div>

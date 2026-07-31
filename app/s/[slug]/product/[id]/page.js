@@ -6,10 +6,12 @@ import { supabase } from "@/lib/supabaseClient";
 import { addToCart } from "@/lib/cart";
 import { rupiah } from "@/lib/format";
 import { storePath } from "@/lib/slug";
+import { useStore } from "../../StoreProvider";
 import Button from "@/components/Button";
 
 export default function ProductDetail() {
   const { id, slug } = useParams();
+  const store = useStore();
   const router = useRouter();
   const [p, setP] = useState(null);
   const [qty, setQty] = useState(1);
@@ -28,7 +30,9 @@ export default function ProductDetail() {
   if (loading) return <div className="container-app pt-10 text-center text-ink-soft">Memuat...</div>;
   if (!p) return <div className="container-app pt-10 text-center text-ink-soft">Produk tidak ditemukan.</div>;
 
+  const demo = !!store?.is_demo;
   const habis = !p.tersedia || p.stok <= 0;
+  const disabled = habis || demo;
 
   return (
     <main className="pb-28">
@@ -79,12 +83,12 @@ export default function ProductDetail() {
             <p className="text-lg font-extrabold text-primary">{rupiah(p.harga * qty)}</p>
           </div>
           <Button
-            disabled={habis}
+            disabled={disabled}
             loading={adding}
             onClick={() => { setAdding(true); addToCart(p, qty, note); router.push(storePath(slug, "/cart")); }}
             className="flex-1"
           >
-            {habis ? "Stok Habis" : "Tambah ke Keranjang"}
+            {demo ? "Mode Demo" : habis ? "Stok Habis" : "Tambah ke Keranjang"}
           </Button>
         </div>
       </div>
