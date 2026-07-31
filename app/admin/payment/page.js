@@ -20,7 +20,7 @@ export default function AdminPayment() {
     (async () => {
       setStore(await getMyStore());
       const t = await token();
-      const res = await fetch("/api/admin/payment-config", { headers: { Authorization: `Bearer ${t}` } });
+      const res = await fetch("/api/admin/payment-config", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
       const j = await res.json();
       if (res.ok) setCfg(j.config);
       else setErr(j.error || "Gagal memuat config.");

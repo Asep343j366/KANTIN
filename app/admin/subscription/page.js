@@ -101,7 +101,7 @@ function PlatformTokens() {
 
   async function load() {
     const t = await token();
-    const res = await fetch("/api/admin/subscription/tokens", { headers: { Authorization: `Bearer ${t}` } });
+    const res = await fetch("/api/admin/subscription/tokens", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
     const j = await res.json();
     if (res.ok) setTokens(j.tokens || []);
   }

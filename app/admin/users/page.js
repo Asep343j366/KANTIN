@@ -22,7 +22,7 @@ export default function UsersPage() {
   async function load() {
     setLoading(true);
     const t = await token();
-    const res = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${t}` } });
+    const res = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
     const j = await res.json();
     if (res.ok) { setUsers(j.users || []); setMeId(j.meId); }
     else setErr(j.error || "Gagal memuat user.");

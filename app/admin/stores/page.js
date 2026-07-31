@@ -29,7 +29,7 @@ export default function StoresPage() {
 
   async function load() {
     const t = await token();
-    const res = await fetch("/api/admin/stores", { headers: { Authorization: `Bearer ${t}` } });
+    const res = await fetch("/api/admin/stores", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
     const j = await res.json();
     if (res.ok) setStores(j.stores || []);
   }
@@ -71,6 +71,9 @@ export default function StoresPage() {
     <div>
       <h1 className="mb-1 text-lg font-extrabold">Kelola Store</h1>
       <p className="mb-4 text-sm text-ink-soft">Tambah store baru & kelola langganan/suspend semua store.</p>
+
+      <LandingSettings />
+
 
       {/* Form tambah */}
       <div className="card mb-4 space-y-3 p-4">
@@ -129,4 +132,60 @@ export default function StoresPage() {
 
 function F({ label, children }) {
   return <div><label className="mb-1 block text-xs font-semibold">{label}</label>{children}</div>;
+}
+
+// Pengaturan landing (nomor WA & harga) — hanya platform-admin.
+function LandingSettings() {
+  const [s, setS] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const t = await token();
+      const res = await fetch("/api/admin/platform-settings", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
+      const j = await res.json();
+      if (res.ok) setS(j.settings || {});
+    })();
+  }, []);
+
+  const set = (k, v) => setS((p) => ({ ...p, [k]: v }));
+
+  async function save() {
+    setSaving(true); setMsg(""); setErr("");
+    const t = await token();
+    const res = await fetch("/api/admin/platform-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify(s),
+    });
+    const j = await res.json();
+    setSaving(false);
+    if (!res.ok) return setErr(j.error || "Gagal menyimpan.");
+    setMsg("Pengaturan landing tersimpan.");
+  }
+
+  if (!s) return null;
+
+  return (
+    <div className="card mb-4 space-y-3 p-4">
+      <h2 className="font-bold">Pengaturan Landing Page</h2>
+      <p className="-mt-1 text-xs text-ink-soft">Nomor WhatsApp & info harga yang tampil di halaman depan (landing).</p>
+      <F label="Nomor WhatsApp (format 62xxx)">
+        <input className="input" value={s.wa_number || ""} onChange={(e) => set("wa_number", e.target.value)} placeholder="628123456789" />
+      </F>
+      <div className="grid grid-cols-2 gap-3">
+        <F label="Harga (label)">
+          <input className="input" value={s.harga_label || ""} onChange={(e) => set("harga_label", e.target.value)} placeholder="Rp50.000" />
+        </F>
+        <F label="Keterangan harga">
+          <input className="input" value={s.harga_note || ""} onChange={(e) => set("harga_note", e.target.value)} placeholder="/bulan" />
+        </F>
+      </div>
+      {msg && <p className="text-sm text-success">{msg}</p>}
+      {err && <p className="text-sm text-danger">{err}</p>}
+      <Button onClick={save} loading={saving} className="btn-block">Simpan Pengaturan Landing</Button>
+    </div>
+  );
 }
