@@ -80,6 +80,20 @@ export default function AdminPayment() {
       {/* Field Casaku */}
       {cfg.mode === "casaku" && (
         <div className="card mb-4 space-y-3 p-4">
+          <a
+            href="/panduan-casaku.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 transition hover:bg-primary/10">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold text-ink">Panduan Pemasangan Casaku (PDF)</span>
+              <span className="block text-xs text-ink-soft">Cara memasang Casaku di HP Android secara mandiri — klik untuk unduh.</span>
+            </span>
+          </a>
           <h2 className="font-bold">Kredensial Casaku</h2>
           <Field label="License Key">
             <input className="input" value={cfg.license_key || ""} onChange={(e) => set("license_key", e.target.value)} placeholder="x-license-key Casaku" />
