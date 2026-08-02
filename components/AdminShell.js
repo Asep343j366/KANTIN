@@ -114,7 +114,7 @@ export default function AdminShell({ children }) {
           Logout
         </Button>
         <div className="mt-3 flex flex-col items-center leading-none">
-          <span className="text-[11px] font-extrabold text-ink">iKantin</span>
+          <span className="text-sm font-extrabold text-ink">iKantin</span>
           <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
         </div>
       </div>
