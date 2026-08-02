@@ -69,7 +69,7 @@ export default function Landing() {
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[15px] font-extrabold tracking-tight">iKantin<span className="text-primary">.</span></span>
+              <span className="text-[15px] font-extrabold tracking-tight">iKantin</span>
               <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function Landing() {
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-extrabold text-ink">iKantin<span className="text-primary">.</span></span>
+              <span className="font-extrabold text-ink">iKantin</span>
               <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
             </div>
           </div>

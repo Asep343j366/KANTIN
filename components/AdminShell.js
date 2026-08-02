@@ -113,6 +113,10 @@ export default function AdminShell({ children }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           Logout
         </Button>
+        <div className="mt-3 flex flex-col items-center leading-none">
+          <span className="text-[11px] font-extrabold text-ink">iKantin</span>
+          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+        </div>
       </div>
     </aside>
   );
