@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 const DEFAULT_WA = "6281234567890";
 const waHref = (wa) =>
-  `https://wa.me/${wa || DEFAULT_WA}?text=${encodeURIComponent("Halo, saya mau berlangganan KANTIN Digital untuk toko saya.")}`;
+  `https://wa.me/${wa || DEFAULT_WA}?text=${encodeURIComponent("Halo, saya mau berlangganan iKantin untuk toko saya.")}`;
 
 // Format harga dgn pemisah ribuan. Bila user isi angka ("50000" / "50.000") →
 // "Rp50.000". Bila teks bebas → tampilkan apa adanya.
@@ -68,7 +68,10 @@ export default function Landing() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
-            <span className="text-[15px] font-extrabold tracking-tight">KANTIN<span className="text-primary">.</span></span>
+            <div className="flex flex-col leading-none">
+              <span className="text-[15px] font-extrabold tracking-tight">iKantin<span className="text-primary">.</span></span>
+              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+            </div>
           </div>
           <nav className="hidden items-center gap-7 text-sm font-semibold text-ink-soft md:flex">
             <a href="#fitur" className="transition hover:text-ink">Fitur</a>
@@ -245,9 +248,12 @@ export default function Landing() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
-            <span className="font-extrabold text-ink">KANTIN<span className="text-primary">.</span></span>
+            <div className="flex flex-col leading-none">
+              <span className="font-extrabold text-ink">iKantin<span className="text-primary">.</span></span>
+              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+            </div>
           </div>
-          <p>© {new Date().getFullYear()} KANTIN Digital. Semua hak dilindungi.</p>
+          <p>© {new Date().getFullYear()} iKantin — Digital Borneo. Semua hak dilindungi.</p>
           <Link href="/admin" className="font-semibold text-primary">Masuk Admin</Link>
         </div>
       </footer>

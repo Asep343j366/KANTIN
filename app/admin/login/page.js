@@ -27,7 +27,8 @@ export default function AdminLogin() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
-        <h1 className="text-center text-xl font-extrabold text-primary">Admin Kantin</h1>
+        <h1 className="text-center text-xl font-extrabold text-primary">Admin iKantin</h1>
+        <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</p>
         <p className="mt-1 text-center text-sm text-ink-soft">Big Mall Samarinda — kelola pesanan & produk.</p>
         <form onSubmit={login} className="mt-5 space-y-3">
           <input className="input" type="email" placeholder="Email" value={email}

@@ -24,7 +24,10 @@ export default function AdminNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-        <span className="font-extrabold text-primary">Admin Kantin</span>
+        <div className="flex flex-col leading-none">
+          <span className="font-extrabold text-primary">Admin iKantin</span>
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+        </div>
         <button onClick={logout} className="text-sm font-semibold text-ink-soft">Keluar</button>
       </div>
       <nav className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 pb-2">
