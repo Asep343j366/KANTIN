@@ -20,6 +20,7 @@ export default function SubscriptionPage() {
     <div>
       <h1 className="mb-1 text-lg font-extrabold">Langganan</h1>
       <StatusCard store={store} />
+      <WebAddressCard slug={store.store?.slug} />
       {store.is_platform_admin ? <PlatformTokens /> : <RedeemBox onDone={() => getMyStore({ force: true }).then(setStore)} />}
     </div>
   );
@@ -48,6 +49,34 @@ function StatusCard({ store }) {
           Aktif sampai: <b>{until ? fmtDateTime(until.toISOString()) : "belum berlangganan"}</b>
         </p>
       )}
+    </div>
+  );
+}
+
+// ---------- Alamat website storefront (slug) ----------
+function WebAddressCard({ slug }) {
+  const [copied, setCopied] = useState(false);
+  if (!slug) return null;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}/s/${slug}`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  }
+
+  return (
+    <div className="card mb-4 p-4">
+      <h2 className="mb-1 font-bold">Alamat Website Kantin</h2>
+      <p className="mb-3 text-xs text-ink-soft">Bagikan alamat ini ke pelanggan untuk buka toko online Anda.</p>
+      <div className="flex gap-2">
+        <a href={url} target="_blank" rel="noreferrer"
+          className="input flex-1 truncate text-primary underline decoration-primary/40">{url}</a>
+        <Button onClick={copy} className="shrink-0">{copied ? "Tersalin ✓" : "Salin"}</Button>
+      </div>
     </div>
   );
 }

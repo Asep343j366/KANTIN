@@ -51,11 +51,10 @@ export async function POST(request) {
   if (order.payment_status === "paid")
     return Response.json({ error: "Order sudah lunas, tidak bisa dibatalkan." }, { status: 400 });
 
-  const { error: upErr } = await db
-    .from("orders")
-    .update({ status: "dibatalkan", payment_status: "cancel" })
-    .eq("id", order_id);
-  if (upErr) return Response.json({ error: upErr.message }, { status: 500 });
+  // Kembalikan stok + tandai dibatalkan (idempoten, atomik di DB).
+  // Stok sudah dikurangi trigger saat order dibuat, jadi harus di-restore.
+  const { error: rpcErr } = await db.rpc("cancel_order_restock", { p_order_id: order_id });
+  if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 500 });
 
   return Response.json({ ok: true });
 }

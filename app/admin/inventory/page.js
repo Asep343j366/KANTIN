@@ -25,7 +25,7 @@ export default function InventoryPage() {
   }
   useEffect(() => {
     load();
-    supabase.auth.getUser().then(({ data }) => setMe(data.user?.email || "admin"));
+    supabase.auth.getSession().then(({ data }) => setMe(data.session?.user?.email || "admin"));
     const ch = supabase.channel("inv")
       .on("postgres_changes", { event: "*", schema: "public", table: "stock_movements" }, load).subscribe();
     return () => supabase.removeChannel(ch);

@@ -33,7 +33,7 @@ export default function JournalPage() {
   }
   useEffect(() => {
     load();
-    supabase.auth.getUser().then(({ data }) => setMe(data.user?.email || "admin"));
+    supabase.auth.getSession().then(({ data }) => setMe(data.session?.user?.email || "admin"));
     const ch = supabase.channel("journal")
       .on("postgres_changes", { event: "*", schema: "public", table: "journal" }, load).subscribe();
     return () => supabase.removeChannel(ch);

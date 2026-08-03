@@ -55,7 +55,7 @@ export default function AdminShell({ children }) {
 
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || ""));
+    supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email || ""));
     getMyStore().then(setStore);
   }, []);
 
