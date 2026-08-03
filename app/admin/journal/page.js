@@ -70,6 +70,8 @@ export default function JournalPage() {
       if (!namaToko.trim()) return setErr("Nama toko wajib diisi untuk Uang Keluar.");
       if (!foto) return setErr("Foto nota belanja wajib diunggah untuk Uang Keluar.");
     }
+    const s = await getMyStore();
+    if (!s?.store_id) { setErr("Store tidak dikenali. Muat ulang halaman."); return; }
     setSaving(true);
     try {
       let foto_url = null;
@@ -80,7 +82,10 @@ export default function JournalPage() {
         if (upErr) throw upErr;
         foto_url = supabase.storage.from("payments").getPublicUrl(path).data.publicUrl;
       }
+      // store_id di-set EKSPLISIT (seperti halaman lain) agar tak bergantung pada
+      // current_store_id() di DB yang sempat salah saat ada membership ganda.
       const { error } = await supabase.from("journal").insert({
+        store_id: s.store_id,
         jenis, kategori, keterangan: keterangan.trim(), jumlah: n, dicatat_oleh: me,
         nama_toko: jenis === "keluar" ? namaToko.trim() : null,
         foto_url,

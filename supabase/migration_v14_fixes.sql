@@ -42,13 +42,17 @@ language sql stable security definer set search_path = public as $$
   limit 1;
 $$;
 
--- ---------- 3) mark_order_paid TANPA kurang stok ----------
+-- ---------- 3) mark_order_paid: settle + JURNAL penjualan (tanpa kurang stok) ----------
 -- Stok sudah dikurangi trigger trg_decrement_stock saat order_items INSERT
--- (order dibuat/pending). Mengurangi lagi di sini = dobel. Cukup settle.
+-- (order dibuat/pending). Mengurangi lagi di sini = dobel → dihapus.
+-- PENTING: order dibuat 'menunggu_pembayaran' lalu DI-UPDATE jadi 'selesai' di
+-- sini. Trigger journal_on_order hanya jalan saat INSERT status='selesai',
+-- sehingga entri "Masuk — Penjualan" TAK PERNAH tercatat pada alur QRIS/manual.
+-- Maka catat jurnalnya di sini (bawa store_id order, idempoten via order_id).
 create or replace function mark_order_paid(p_payment_ref text, p_amount int)
 returns boolean as $$
 declare
-  v_order_id uuid;
+  v_order orders%rowtype;
 begin
   update orders
      set payment_status = 'paid',
@@ -57,12 +61,45 @@ begin
          amount_charged = coalesce(p_amount, amount_charged)
    where payment_ref = p_payment_ref
      and payment_status <> 'paid'
-   returning id into v_order_id;
+   returning * into v_order;
 
-  -- true bila baru saja berpindah ke paid; stok TIDAK disentuh di sini.
-  return v_order_id is not null;
+  if v_order.id is null then
+    return false; -- tidak ada / sudah lunas → jangan proses ulang
+  end if;
+
+  -- Jurnal "Masuk — Penjualan" (idempoten: hanya bila belum ada utk order ini)
+  insert into journal(store_id, jenis, kategori, keterangan, jumlah, dicatat_oleh, order_id)
+  select v_order.store_id, 'masuk', 'Penjualan',
+         'Penjualan ' || v_order.kode_pesanan || ' (' || v_order.nama_pelanggan || ')',
+         v_order.total, 'sistem', v_order.id
+  where not exists (select 1 from journal j where j.order_id = v_order.id);
+
+  return true;
 end;
 $$ language plpgsql security definer;
+
+-- ---------- 3b) BACKFILL jurnal penjualan yang hilang ----------
+-- Order yang SUDAH lunas sebelum perbaikan ini tak punya entri "Penjualan"
+-- (karena trigger INSERT tak pernah jalan pada alur update). Buatkan sekarang.
+-- Idempoten: hanya untuk order paid/selesai yang belum punya baris jurnal.
+insert into journal(store_id, jenis, kategori, keterangan, jumlah, dicatat_oleh, order_id, created_at)
+select o.store_id, 'masuk', 'Penjualan',
+       'Penjualan ' || o.kode_pesanan || ' (' || o.nama_pelanggan || ')',
+       o.total, 'sistem', o.id, coalesce(o.paid_at, o.created_at)
+from orders o
+where (o.payment_status = 'paid' or o.status = 'selesai')
+  and o.store_id is not null
+  and not exists (select 1 from journal j where j.order_id = o.id);
+
+-- ---------- 3c) PERBAIKI store_id jurnal yang salah (entri ber-order) ----------
+-- Entri jurnal yang tertaut order tapi store_id-nya beda dari order (akibat
+-- current_store_id() lama yang salah) — samakan ke store order (otoritatif).
+update journal j
+   set store_id = o.store_id
+  from orders o
+ where j.order_id = o.id
+   and o.store_id is not null
+   and j.store_id is distinct from o.store_id;
 
 -- ---------- 4) RESTOCK saat order pending dibatalkan ----------
 -- Kembalikan stok + catat pergerakan 'masuk'. Idempoten: order yang sudah

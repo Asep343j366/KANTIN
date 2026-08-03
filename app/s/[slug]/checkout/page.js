@@ -108,6 +108,28 @@ export default function CheckoutPage() {
     setProcessing(false);
   }
 
+  // Simpan gambar QRIS ke galeri/berkas tanpa perlu screenshot.
+  // Mendukung data-URL (QR dinamis Casaku) & URL storage (QRIS statis manual).
+  async function downloadQris(src) {
+    if (!src) return;
+    const filename = `qris-${kode || "pembayaran"}.png`;
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      // fallback: buka gambar di tab baru agar bisa disimpan manual
+      window.open(src, "_blank");
+    }
+  }
+
   if (items.length === 0 && step === 1) {
     return (
       <main className="container-app pt-16 text-center">
@@ -172,6 +194,14 @@ export default function CheckoutPage() {
                 )}
               </div>
 
+              {qrImg && (
+                <button type="button" onClick={() => downloadQris(qrImg)}
+                  className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                  Download QRIS
+                </button>
+              )}
+
               <p className="mt-2 text-xs text-ink-soft">
                 Scan QRIS di atas pakai aplikasi m-banking / e-wallet apa pun.
                 Status pesanan akan otomatis diperbarui setelah pembayaran terkonfirmasi.
@@ -184,10 +214,17 @@ export default function CheckoutPage() {
               <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
 
               {settings?.qris_image_url && (
-                <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={settings.qris_image_url} alt="QRIS" className="w-full" />
-                </div>
+                <>
+                  <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={settings.qris_image_url} alt="QRIS" className="w-full" />
+                  </div>
+                  <button type="button" onClick={() => downloadQris(settings.qris_image_url)}
+                    className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Download QRIS
+                  </button>
+                </>
               )}
               {settings?.info_rekening && (
                 <div className="mx-auto mt-3 max-w-xs whitespace-pre-line rounded-xl bg-surface p-3 text-left text-sm">
