@@ -45,9 +45,10 @@ alter table public.subscription_orders enable row level security;
 alter table public.journal add column if not exists sub_order_id uuid references public.subscription_orders(id) on delete set null;
 
 -- ---------- 5) BACKFILL jurnal langganan yang belum tercatat ----------
--- Pembayaran langganan yang SUDAH lunas sebelum perbaikan ini (mis. jurnal gagal
--- ter-insert karena kolom sub_order_id belum ada) → buatkan entri pemasukan J366
--- sekarang. Idempoten: hanya untuk order paid yang belum punya baris jurnal.
+-- Pembayaran langganan yang SUDAH lunas sebelum perbaikan ini → buatkan entri
+-- (a) PEMASUKAN di J366 dan (b) PENGELUARAN di store pembeli. Idempoten:
+-- cek per-jenis agar dua sisi tak saling menutupi.
+-- (a) Pemasukan J366
 insert into public.journal (store_id, jenis, kategori, keterangan, jumlah, dicatat_oleh, sub_order_id, created_at)
 select p.id, 'masuk', 'Langganan',
        'Langganan ' || so.durasi_hari || ' hari — ' || coalesce(b.nama, 'toko') || ' (' || coalesce(b.kode_site, '-') || ')',
@@ -56,4 +57,13 @@ from public.subscription_orders so
 join public.stores b on b.id = so.store_id
 cross join lateral (select id from public.stores where is_platform_admin = true limit 1) p
 where so.status = 'paid'
-  and not exists (select 1 from public.journal j where j.sub_order_id = so.id);
+  and not exists (select 1 from public.journal j where j.sub_order_id = so.id and j.jenis = 'masuk');
+
+-- (b) Pengeluaran store pembeli
+insert into public.journal (store_id, jenis, kategori, keterangan, jumlah, dicatat_oleh, sub_order_id, created_at)
+select so.store_id, 'keluar', 'Langganan',
+       'Biaya langganan ' || so.durasi_hari || ' hari',
+       so.amount, 'sistem', so.id, coalesce(so.paid_at, so.created_at)
+from public.subscription_orders so
+where so.status = 'paid'
+  and not exists (select 1 from public.journal j where j.sub_order_id = so.id and j.jenis = 'keluar');

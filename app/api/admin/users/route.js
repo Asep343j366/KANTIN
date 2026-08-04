@@ -74,6 +74,31 @@ export async function POST(request) {
   return Response.json({ user: { id: data.user.id, email: data.user.email } });
 }
 
+// Reset password anggota store (manual, TANPA email) — hanya untuk anggota
+// store yang sama. Berguna saat staff/owner lupa password (email free tier tak
+// diandalkan). Untuk ganti password sendiri, pakai supabase.auth.updateUser di client.
+export async function PATCH(request) {
+  const me = await requireAuth(request);
+  if (!me) return Response.json({ error: "unauthorized" }, { status: 401 });
+  const body = await request.json().catch(() => ({}));
+  const { id, password } = body;
+  if (!id || !password || password.length < 6)
+    return Response.json({ error: "Password minimal 6 karakter." }, { status: 400 });
+
+  // Pastikan target anggota store yang sama
+  const { data: mem } = await admin()
+    .from("store_members")
+    .select("user_id")
+    .eq("store_id", me.store_id)
+    .eq("user_id", id)
+    .maybeSingle();
+  if (!mem) return Response.json({ error: "User bukan anggota store Anda." }, { status: 403 });
+
+  const { error } = await admin().auth.admin.updateUserById(id, { password });
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  return Response.json({ ok: true });
+}
+
 export async function DELETE(request) {
   const me = await requireAuth(request);
   if (!me) return Response.json({ error: "unauthorized" }, { status: 401 });

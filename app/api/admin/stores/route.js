@@ -133,6 +133,23 @@ export async function PATCH(request) {
   if (!store) return Response.json({ error: "Store tidak ditemukan." }, { status: 404 });
   if (store.is_platform_admin) return Response.json({ error: "Store platform tak bisa diubah." }, { status: 400 });
 
+  // Reset password owner store (manual, TANPA email) — untuk owner yang lupa password.
+  if (action === "reset_owner_password") {
+    const password = b.password || "";
+    if (password.length < 6) return Response.json({ error: "Password minimal 6 karakter." }, { status: 400 });
+    const { data: owner } = await db
+      .from("store_members")
+      .select("user_id")
+      .eq("store_id", store_id)
+      .eq("role", "owner")
+      .limit(1)
+      .maybeSingle();
+    if (!owner?.user_id) return Response.json({ error: "Owner store tidak ditemukan." }, { status: 404 });
+    const { error } = await db.auth.admin.updateUserById(owner.user_id, { password });
+    if (error) return Response.json({ error: error.message }, { status: 400 });
+    return Response.json({ ok: true });
+  }
+
   let patch = {};
   if (action === "suspend") patch = { status: "suspended" };
   else if (action === "activate") patch = { status: "aktif" };

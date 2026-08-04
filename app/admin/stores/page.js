@@ -19,6 +19,7 @@ export default function StoresPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [resetFor, setResetFor] = useState(null);
 
   useEffect(() => {
     getMyStore().then((s) => {
@@ -127,8 +128,10 @@ export default function StoresPage() {
                   {s.is_demo
                     ? <button onClick={() => action(s.id, "demo_off")} className="rounded-lg bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">Batal Demo</button>
                     : <button onClick={() => action(s.id, "demo_on")} className="rounded-lg bg-surface px-2 py-1 text-xs font-semibold">Jadikan Demo</button>}
+                  <button onClick={() => setResetFor(resetFor === s.id ? null : s.id)} className="rounded-lg bg-surface px-2 py-1 text-xs font-semibold">Reset PW Owner</button>
                 </div>
               )}
+              {resetFor === s.id && <ResetOwnerPassword store_id={s.id} email={s.owner_email} onDone={() => setResetFor(null)} />}
             </div>
           );
         })}
@@ -139,6 +142,44 @@ export default function StoresPage() {
 
 function F({ label, children }) {
   return <div><label className="mb-1 block text-xs font-semibold">{label}</label>{children}</div>;
+}
+
+// Platform-admin reset password OWNER sebuah store (manual, tanpa email).
+function ResetOwnerPassword({ store_id, email, onDone }) {
+  const [pw, setPw] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+
+  async function save() {
+    setErr(""); setMsg("");
+    if (pw.length < 6) return setErr("Password minimal 6 karakter.");
+    setSaving(true);
+    const t = await token();
+    const res = await fetch("/api/admin/stores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ store_id, action: "reset_owner_password", password: pw }),
+    });
+    const j = await res.json();
+    setSaving(false);
+    if (!res.ok) return setErr(j.error || "Gagal reset password.");
+    setMsg(`Password owner${email ? " (" + email + ")" : ""} berhasil diganti.`);
+    setPw("");
+    setTimeout(() => onDone?.(), 1500);
+  }
+
+  return (
+    <div className="mt-2 rounded-xl bg-surface p-3">
+      <p className="mb-2 text-xs font-semibold">Set password baru untuk owner {email || "store ini"}:</p>
+      <div className="flex gap-2">
+        <input className="input flex-1" type="text" placeholder="Password baru (min. 6)" value={pw} onChange={(e) => setPw(e.target.value)} />
+        <Button onClick={save} loading={saving} className="shrink-0">Simpan</Button>
+      </div>
+      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+      {msg && <p className="mt-2 text-sm text-success">{msg}</p>}
+    </div>
+  );
 }
 
 // Pengaturan landing (nomor WA & harga) — hanya platform-admin.
