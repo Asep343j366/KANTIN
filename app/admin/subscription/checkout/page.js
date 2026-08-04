@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
+import { clearStoreCache } from "@/lib/store";
 import Button from "@/components/Button";
 
 async function token() {
@@ -48,6 +49,7 @@ export default function CheckoutLanggananPage() {
       if (j.status === "paid") {
         setTokenCode(j.token_code || "");
         setState("paid");
+        clearStoreCache(); // status langganan berubah → paksa muat ulang data store
         clearInterval(pollRef.current);
       } else if (j.status === "expired" || j.status === "cancel") {
         setErr("Transaksi kedaluwarsa. Silakan ulangi.");
@@ -117,7 +119,7 @@ export default function CheckoutLanggananPage() {
               </div>
             </div>
           )}
-          <Link href="/admin/subscription" className="btn-primary btn-block mt-4">Lihat Status Langganan</Link>
+          <a href="/admin/subscription" className="btn-primary btn-block mt-4 text-center">Lihat Status Langganan</a>
         </div>
       )}
     </div>

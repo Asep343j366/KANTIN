@@ -10,17 +10,21 @@
 --  4) journal.sub_order_id       — telusur entri jurnal langganan J366.
 -- =========================================================
 
+-- Pastikan resolusi nama tabel ke schema public (hindari error "relation ...
+-- does not exist" bila search_path SQL Editor tak menyertakan public).
+set search_path = public;
+
 -- ---------- 1) FLAG TRIAL ----------
-alter table stores add column if not exists is_trial boolean not null default false;
+alter table public.stores add column if not exists is_trial boolean not null default false;
 
 -- ---------- 2) HARGA & DURASI VOUCHER (diatur platform-admin J366) ----------
-alter table platform_settings add column if not exists langganan_harga int;             -- nominal ditagih via QRIS (angka)
-alter table platform_settings add column if not exists langganan_durasi_hari int default 120; -- 4 bulan
+alter table public.platform_settings add column if not exists langganan_harga int;             -- nominal ditagih via QRIS (angka)
+alter table public.platform_settings add column if not exists langganan_durasi_hari int default 120; -- 4 bulan
 
 -- ---------- 3) PESANAN LANGGANAN ----------
-create table if not exists subscription_orders (
+create table if not exists public.subscription_orders (
   id uuid primary key default gen_random_uuid(),
-  store_id uuid not null references stores(id) on delete cascade,
+  store_id uuid not null references public.stores(id) on delete cascade,
   amount int not null,                    -- harga layanan (base, utk jurnal)
   amount_charged int,                     -- nominal unik Casaku (yg benar2 dibayar)
   durasi_hari int not null,               -- durasi langganan yg diperpanjang
@@ -30,12 +34,12 @@ create table if not exists subscription_orders (
   created_at timestamptz not null default now(),
   paid_at timestamptz
 );
-create index if not exists idx_suborders_store on subscription_orders(store_id);
-create index if not exists idx_suborders_ref on subscription_orders(payment_ref);
-create index if not exists idx_suborders_status on subscription_orders(status);
+create index if not exists idx_suborders_store on public.subscription_orders(store_id);
+create index if not exists idx_suborders_ref on public.subscription_orders(payment_ref);
+create index if not exists idx_suborders_status on public.subscription_orders(status);
 
 -- RLS aktif TANPA policy = server-only (semua akses lewat route service_role).
-alter table subscription_orders enable row level security;
+alter table public.subscription_orders enable row level security;
 
 -- ---------- 4) TELUSUR JURNAL LANGGANAN ----------
-alter table journal add column if not exists sub_order_id uuid references subscription_orders(id) on delete set null;
+alter table public.journal add column if not exists sub_order_id uuid references public.subscription_orders(id) on delete set null;

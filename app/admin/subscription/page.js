@@ -11,6 +11,13 @@ async function token() {
   return data.session?.access_token;
 }
 const rupiah = (n) => "Rp" + Number(n || 0).toLocaleString("id-ID");
+// Angka ("200000"/"200.000") → "Rp200.000"; teks bebas → apa adanya.
+function formatHarga(label) {
+  if (label == null || label === "") return "—";
+  const clean = String(label).replace(/[.\s]/g, "");
+  if (/^\d+$/.test(clean)) return "Rp" + Number(clean).toLocaleString("id-ID");
+  return label;
+}
 
 export default function SubscriptionPage() {
   const [store, setStore] = useState(null);
@@ -78,7 +85,7 @@ function HargaCard({ store }) {
 
   const s = store.store || {};
   const aktif = s.status === "aktif" && !s.is_trial && s.langganan_until && new Date(s.langganan_until) > new Date();
-  const label = plat?.harga_label?.trim() || (plat?.langganan_harga ? rupiah(plat.langganan_harga) : "—");
+  const label = plat?.harga_label?.trim() ? formatHarga(plat.harga_label) : (plat?.langganan_harga ? rupiah(plat.langganan_harga) : "—");
   const durasi = plat?.langganan_durasi_hari || 120;
   const bisaBayar = !!plat?.langganan_harga;
 
