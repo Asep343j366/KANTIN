@@ -115,40 +115,8 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Phone mockup */}
-          <div className="relative mx-auto w-full max-w-[300px]">
-            <div className="absolute inset-0 -z-10 translate-y-6 scale-95 rounded-[2.5rem] bg-gradient-to-br from-[#2E86FF] to-[#16A34A] opacity-20 blur-2xl" />
-            <div className="rounded-[2.2rem] border-[6px] border-[#0F172A] bg-[#0F172A] shadow-pop">
-              <div className="overflow-hidden rounded-[1.7rem] bg-surface">
-                {/* mini header */}
-                <div className="bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pb-5 pt-4 text-white">
-                  <p className="text-[9px] font-semibold uppercase tracking-wide text-white/60">Kantin Digital</p>
-                  <p className="text-sm font-extrabold">Kantin Kejujuran Informa Bigmall</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 p-3">
-                  {mockItems.map((it, i) => (
-                    <div key={i} className="rounded-xl bg-white p-2 shadow-card">
-                      {it.foto_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.foto_url} alt={it.nama} className="h-14 w-full rounded-lg object-cover" />
-                      ) : (
-                        <div className="h-14 rounded-lg bg-gradient-to-br from-primary-light to-[#EAF7EE]" />
-                      )}
-                      <p className="mt-1.5 truncate text-[10px] font-bold">{it.nama}</p>
-                      <div className="mt-0.5 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-primary">Rp{Number(it.harga || 0).toLocaleString("id-ID")}</span>
-                        <span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-[11px] font-bold text-white">+</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mx-3 mb-3 flex items-center justify-between rounded-xl bg-primary px-3 py-2 text-white shadow-card">
-                  <span className="text-[10px] font-semibold">Total 2 item</span>
-                  <span className="text-xs font-extrabold">Checkout →</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Phone mockup — dua HP proporsi asli (belakang: QRIS, depan: toko) */}
+          <PhoneMockups items={mockItems} />
         </div>
       </section>
 
@@ -264,6 +232,103 @@ export default function Landing() {
 
 function Dot() {
   return <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#22C55E]" />;
+}
+
+// Bingkai HP realistis (rasio ~9:19.5) dengan notch. children = isi layar.
+function PhoneFrame({ children, className = "", width = 250 }) {
+  return (
+    <div className={`rounded-[2.6rem] border-[7px] border-[#0F172A] bg-[#0F172A] shadow-pop ${className}`} style={{ width }}>
+      <div className="relative aspect-[9/19] overflow-hidden rounded-[2.1rem] bg-surface">
+        {/* notch */}
+        <div className="absolute left-1/2 top-0 z-20 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-[#0F172A]" />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Dua HP berdampingan: belakang (setengah, layar QRIS) + depan (full, layar toko).
+function PhoneMockups({ items }) {
+  const grid = Array.from({ length: 6 }, (_, i) => items[i % items.length] || {});
+  return (
+    <div className="relative mx-auto flex w-full max-w-[440px] items-center justify-center py-4">
+      {/* glow */}
+      <div className="pointer-events-none absolute inset-0 -z-10 translate-y-8 scale-90 rounded-full bg-gradient-to-br from-[#2E86FF] to-[#16A34A] opacity-20 blur-3xl" />
+
+      {/* HP belakang — layar QRIS/pembayaran, setengah tampil */}
+      <div className="absolute right-0 top-2 hidden rotate-[8deg] sm:block">
+        <PhoneFrame width={200} className="opacity-95">
+          <div className="flex h-full flex-col bg-white">
+            <div className="bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pb-4 pt-7 text-white">
+              <p className="text-[8px] font-semibold uppercase tracking-wide text-white/60">Pembayaran</p>
+              <p className="text-[11px] font-extrabold">QRIS Otomatis</p>
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4">
+              <div className="grid grid-cols-5 gap-1">
+                {Array.from({ length: 25 }).map((_, i) => (
+                  <span key={i} className={`h-3 w-3 rounded-[2px] ${(i * 7) % 3 === 0 ? "bg-[#0F172A]" : "bg-transparent"}`} />
+                ))}
+              </div>
+              <p className="text-[13px] font-extrabold text-primary">Rp23.000</p>
+              <div className="flex items-center gap-1.5 text-[8px] font-semibold text-ink-soft">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /> Menunggu pembayaran…
+              </div>
+            </div>
+            <div className="mx-3 mb-4 rounded-lg bg-[#EAF7EE] py-2 text-center text-[9px] font-bold text-[#16A34A]">✓ Terverifikasi otomatis</div>
+          </div>
+        </PhoneFrame>
+      </div>
+
+      {/* HP depan — layar toko, full */}
+      <div className="relative z-10 -rotate-2 sm:mr-24">
+        <PhoneFrame width={252}>
+          <div className="flex h-full flex-col">
+            {/* status bar */}
+            <div className="flex items-center justify-between bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pt-1.5 text-[8px] text-white/70">
+              <span>9:41</span>
+              <span className="flex items-center gap-1"><span>●●●</span><span>▮</span></span>
+            </div>
+            {/* header toko */}
+            <div className="bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pb-4 pt-2 text-white">
+              <p className="text-[8px] font-semibold uppercase tracking-wide text-white/60">Kantin Digital</p>
+              <p className="text-[13px] font-extrabold leading-tight">Kantin Kejujuran Informa Bigmall</p>
+              <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="text-white/70"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>
+                <span className="text-[8px] text-white/70">Cari menu…</span>
+              </div>
+            </div>
+            {/* grid produk */}
+            <div className="grid flex-1 grid-cols-2 content-start gap-2 overflow-hidden bg-surface p-2.5">
+              {grid.map((it, i) => (
+                <div key={i} className="rounded-xl bg-white p-1.5 shadow-card">
+                  {it.foto_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={it.foto_url} alt={it.nama} className="h-16 w-full rounded-lg object-cover" />
+                  ) : (
+                    <div className="h-16 rounded-lg bg-gradient-to-br from-primary-light to-[#EAF7EE]" />
+                  )}
+                  <p className="mt-1 truncate text-[9px] font-bold">{it.nama || "Menu"}</p>
+                  <div className="mt-0.5 flex items-center justify-between">
+                    <span className="text-[9px] font-bold text-primary">Rp{Number(it.harga || 0).toLocaleString("id-ID")}</span>
+                    <span className="grid h-4 w-4 place-items-center rounded-full bg-primary text-[10px] font-bold leading-none text-white">+</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* bottom checkout */}
+            <div className="bg-surface px-2.5 pb-2.5">
+              <div className="flex items-center justify-between rounded-xl bg-primary px-3 py-2.5 text-white shadow-card">
+                <span className="text-[9px] font-semibold">Total 2 item · Rp23.000</span>
+                <span className="text-[11px] font-extrabold">Checkout →</span>
+              </div>
+            </div>
+            {/* home indicator */}
+            <div className="flex justify-center bg-surface pb-2"><span className="h-1 w-16 rounded-full bg-ink/20" /></div>
+          </div>
+        </PhoneFrame>
+      </div>
+    </div>
+  );
 }
 
 function Stat({ big, small }) {
