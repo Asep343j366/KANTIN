@@ -19,13 +19,12 @@ async function requirePlatformAdmin(request) {
   const client = createClient(url, anon, { auth: { persistSession: false } });
   const { data, error } = await client.auth.getUser(token);
   if (error || !data?.user) return null;
-  const { data: mem } = await admin()
+  const { data: mems } = await admin()
     .from("store_members")
     .select("store_id, stores(is_platform_admin)")
-    .eq("user_id", data.user.id)
-    .limit(1)
-    .maybeSingle();
-  if (!mem?.stores?.is_platform_admin) return null;
+    .eq("user_id", data.user.id);
+  const isPlatform = (mems || []).some((m) => m.stores?.is_platform_admin);
+  if (!isPlatform) return null;
   return { user: data.user };
 }
 

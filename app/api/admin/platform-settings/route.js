@@ -17,13 +17,14 @@ async function requirePlatformAdmin(request) {
   const client = createClient(url, anon, { auth: { persistSession: false } });
   const { data, error } = await client.auth.getUser(token);
   if (error || !data?.user) return null;
-  const { data: mem } = await admin()
+  // Cek SEMUA keanggotaan: platform-admin bila ADA membership ke store platform.
+  // (limit(1) lama bisa salah pilih untuk user J366 dgn >1 keanggotaan → 401.)
+  const { data: mems } = await admin()
     .from("store_members")
     .select("stores(is_platform_admin)")
-    .eq("user_id", data.user.id)
-    .limit(1)
-    .maybeSingle();
-  if (!mem?.stores?.is_platform_admin) return null;
+    .eq("user_id", data.user.id);
+  const isPlatform = (mems || []).some((m) => m.stores?.is_platform_admin);
+  if (!isPlatform) return null;
   return { user: data.user };
 }
 

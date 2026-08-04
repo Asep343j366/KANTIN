@@ -14,13 +14,12 @@ async function requirePlatformAdmin(request) {
   const { data, error } = await client.auth.getUser(token);
   if (error || !data?.user) return null;
   const db = supabaseAdmin();
-  const { data: mem } = await db
+  const { data: mems } = await db
     .from("store_members")
     .select("stores(is_platform_admin)")
-    .eq("user_id", data.user.id)
-    .limit(1)
-    .maybeSingle();
-  if (!mem?.stores?.is_platform_admin) return null;
+    .eq("user_id", data.user.id);
+  const isPlatform = (mems || []).some((m) => m.stores?.is_platform_admin);
+  if (!isPlatform) return null;
   return { user: data.user };
 }
 
