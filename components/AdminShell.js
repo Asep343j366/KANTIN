@@ -36,6 +36,47 @@ const links = [
   { href: "/admin/settings", label: "Pengaturan", icon: "setting" },
 ];
 
+// Banner peringatan langganan: countdown trial + peringatan menjelang habis / grace.
+// Hilang otomatis bila store sudah berlangganan (is_trial=false) & masih lama.
+function SubscriptionBanner({ store, pathname }) {
+  if (!store || store.is_platform_admin) return null;
+  if (pathname.startsWith("/admin/subscription")) return null; // sudah di halaman langganan
+
+  const s = store.store || {};
+  const until = s.langganan_until ? new Date(s.langganan_until) : null;
+  const msLeft = until ? until.getTime() - Date.now() : null;
+  const daysLeft = msLeft != null ? Math.ceil(msLeft / 86400000) : null;
+
+  let tone = null; // "info" | "warn" | "danger"
+  let text = "";
+  if (s.status === "grace") {
+    tone = "danger";
+    text = "Masa langganan sudah berakhir. Perpanjang sekarang sebelum toko dinonaktifkan.";
+  } else if (s.is_trial && daysLeft != null) {
+    tone = daysLeft <= 2 ? "warn" : "info";
+    text = daysLeft > 0 ? `Masa trial tersisa ${daysLeft} hari. Berlangganan agar toko tetap aktif.` : "Masa trial berakhir hari ini. Berlangganan sekarang.";
+  } else if (!s.is_trial && daysLeft != null && daysLeft <= 7) {
+    tone = daysLeft <= 3 ? "danger" : "warn";
+    text = daysLeft > 0 ? `Langganan berakhir dalam ${daysLeft} hari. Perpanjang agar tidak terputus.` : "Langganan berakhir hari ini. Perpanjang sekarang.";
+  }
+  if (!tone) return null;
+
+  const cls = {
+    info: "bg-primary-light text-primary",
+    warn: "bg-amber-50 text-amber-800 border-amber-200",
+    danger: "bg-red-50 text-red-700 border-red-200",
+  }[tone];
+
+  return (
+    <div className={`mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold ${cls}`}>
+      <span>{text}</span>
+      <Link href="/admin/subscription/checkout" className="shrink-0 rounded-lg bg-white/70 px-3 py-1 text-xs font-bold text-primary shadow-card">
+        {s.is_trial ? "Langganan Sekarang" : "Perpanjang"}
+      </Link>
+    </div>
+  );
+}
+
 function Icon({ name }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -148,6 +189,7 @@ export default function AdminShell({ children }) {
         </header>
 
         <main className="mx-auto max-w-4xl px-4 py-5">
+          {!locked && <SubscriptionBanner store={store} pathname={pathname} />}
           {locked ? (
             <div className="card p-6 text-center">
               <h2 className="text-lg font-extrabold">Langganan tidak aktif</h2>

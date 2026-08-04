@@ -187,8 +187,21 @@ function LandingSettings() {
           <input className="input" value={s.harga_label || ""} onChange={(e) => set("harga_label", e.target.value)} placeholder="Rp50.000" />
         </F>
         <F label="Keterangan harga">
-          <input className="input" value={s.harga_note || ""} onChange={(e) => set("harga_note", e.target.value)} placeholder="/bulan" />
+          <input className="input" value={s.harga_note || ""} onChange={(e) => set("harga_note", e.target.value)} placeholder="/4 bulan" />
         </F>
+      </div>
+
+      <div className="rounded-xl bg-surface p-3">
+        <p className="mb-2 text-xs font-bold">Voucher Langganan Otomatis (QRIS)</p>
+        <p className="-mt-1 mb-2 text-[11px] text-ink-soft">Nominal yang ditagih saat store membeli/perpanjang langganan lewat QRIS otomatis (masuk ke akun Casaku Anda).</p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Harga tagih (angka, cth 200000)">
+            <input className="input" type="number" min="0" value={s.langganan_harga || ""} onChange={(e) => set("langganan_harga", e.target.value)} placeholder="200000" />
+          </F>
+          <F label="Durasi voucher (hari)">
+            <input className="input" type="number" min="1" value={s.langganan_durasi_hari ?? 120} onChange={(e) => set("langganan_durasi_hari", e.target.value)} placeholder="120" />
+          </F>
+        </div>
       </div>
       {msg && <p className="text-sm text-success">{msg}</p>}
       {err && <p className="text-sm text-danger">{err}</p>}

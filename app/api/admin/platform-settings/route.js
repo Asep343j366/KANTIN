@@ -38,11 +38,15 @@ export async function POST(request) {
   const me = await requirePlatformAdmin(request);
   if (!me) return Response.json({ error: "unauthorized" }, { status: 401 });
   const b = await request.json().catch(() => ({}));
+  const harga = parseInt(String(b.langganan_harga).replace(/[^0-9]/g, ""));
+  const durasi = parseInt(b.langganan_durasi_hari);
   const payload = {
     id: 1,
     wa_number: (b.wa_number || "").replace(/[^0-9]/g, "") || null,
     harga_label: b.harga_label || null,
     harga_note: b.harga_note || null,
+    langganan_harga: Number.isFinite(harga) && harga > 0 ? harga : null,
+    langganan_durasi_hari: Number.isFinite(durasi) && durasi > 0 ? durasi : 120,
     updated_at: new Date().toISOString(),
   };
   const { error } = await admin().from("platform_settings").upsert(payload, { onConflict: "id" });

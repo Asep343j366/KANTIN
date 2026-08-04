@@ -80,7 +80,7 @@ export default function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/admin" className="btn-outline btn-xs">Masuk</Link>
-            <a href={waLink} target="_blank" rel="noreferrer" className="btn-primary btn-xs">Mulai</a>
+            <Link href="/register" className="btn-primary btn-xs">Daftar</Link>
           </div>
         </div>
       </header>
@@ -103,7 +103,7 @@ export default function Landing() {
               Kelola produk, stok, laporan penjualan, dan keuangan — semua dalam satu aplikasi.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <a href={waLink} target="_blank" rel="noreferrer" className="btn-primary px-5 py-2.5 text-sm">Mulai Sekarang</a>
+              <Link href="/register" className="btn-primary px-5 py-2.5 text-sm">Coba Gratis 7 Hari</Link>
               {demoSlug && (
                 <Link href={`/s/${demoSlug}`} className="btn-outline px-5 py-2.5 text-sm">Lihat Demo Toko →</Link>
               )}
@@ -192,7 +192,7 @@ export default function Landing() {
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Mulai jualan dalam 3 langkah</h2>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            <Step n="1" title="Daftarkan toko" desc="Hubungi kami, toko & akun admin-mu langsung dibuatkan dengan alamat unik." />
+            <Step n="1" title="Daftarkan toko" desc="Isi nama toko & email — akun admin dan alamat unik langsung jadi. Gratis coba 7 hari." />
             <Step n="2" title="Isi produk & QRIS" desc="Tambahkan menu, foto, harga, dan atur cara pembayaran QRIS-mu." />
             <Step n="3" title="Bagikan link" desc="Sebar link toko / QR ke pelanggan. Mereka pesan & bayar sendiri dari HP." />
           </div>
@@ -220,7 +220,8 @@ export default function Landing() {
                 <li key={t} className="flex items-center gap-2.5"><Check /> {t}</li>
               ))}
             </ul>
-            <a href={waLink} target="_blank" rel="noreferrer" className="btn-primary btn-block mt-7 py-2.5 text-sm">Hubungi via WhatsApp</a>
+            <Link href="/register" className="btn-primary btn-block mt-7 py-2.5 text-center text-sm">Daftar & Coba Gratis</Link>
+            <a href={waLink} target="_blank" rel="noreferrer" className="mt-2 block text-center text-xs font-semibold text-primary">atau tanya via WhatsApp</a>
           </div>
         </div>
       </section>
@@ -234,9 +235,9 @@ export default function Landing() {
           <p className="relative mx-auto mt-3 max-w-md text-sm text-white/80">
             Bergabung dan mulai terima pesanan online dengan pembayaran QRIS otomatis hari ini.
           </p>
-          <a href={waLink} target="_blank" rel="noreferrer" className="relative mt-7 inline-flex rounded-lg bg-white px-6 py-2.5 text-sm font-bold text-primary shadow-card transition hover:brightness-95">
+          <Link href="/register" className="relative mt-7 inline-flex rounded-lg bg-white px-6 py-2.5 text-sm font-bold text-primary shadow-card transition hover:brightness-95">
             Mulai Sekarang
-          </a>
+          </Link>
         </div>
       </section>
 
