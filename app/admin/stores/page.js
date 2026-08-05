@@ -120,6 +120,7 @@ export default function StoresPage() {
               </div>
               {!s.is_platform_admin && (
                 <div className="mt-2 flex flex-wrap gap-2">
+                  <button onClick={() => action(s.id, "extend", 7)} className="rounded-lg bg-primary-light px-2 py-1 text-xs font-semibold text-primary">+7 hari</button>
                   <button onClick={() => action(s.id, "extend", 30)} className="rounded-lg bg-primary-light px-2 py-1 text-xs font-semibold text-primary">+30 hari</button>
                   <button onClick={() => action(s.id, "extend", 365)} className="rounded-lg bg-primary-light px-2 py-1 text-xs font-semibold text-primary">+1 tahun</button>
                   {s.status === "suspended"
