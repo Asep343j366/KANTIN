@@ -50,11 +50,14 @@ body {
 }
 
 /* Tabel panjang: batasi tinggi agar muat layar desktop + scrollbar vertikal.
-   Header tabel tetap menempel (sticky) saat isi di-scroll. */
-.table-scroll { max-height: 60vh; overflow: auto; }
+   Header tabel tetap menempel (sticky) saat isi di-scroll.
+   padding-top:0 penting agar header menempel FLUSH di atas — kalau ada padding
+   atas, baris yang ter-scroll mengintip di atas header (bug "teks tembus"). */
+.table-scroll { max-height: 60vh; overflow: auto; padding-top: 0; }
 .table-scroll > table thead th {
-  position: sticky; top: 0; z-index: 1;
+  position: sticky; top: 0; z-index: 10;
   background: #fff;
+  padding-top: 0.75rem;
   box-shadow: inset 0 -1px 0 #E5E9F0;
 }
 

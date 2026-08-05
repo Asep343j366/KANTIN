@@ -347,16 +347,16 @@ function MonthStatement({ m, storeName, txs, onClose }) {
         </div>
 
         {/* Hanya tabel yang bisa di-scroll */}
-        <div className="min-h-0 flex-1 overflow-auto px-5 py-2">
+        <div className="min-h-0 flex-1 overflow-auto px-5 pb-2">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-ink-soft">
-                <th className="sticky top-0 bg-white py-2 pr-2 font-semibold">Tanggal</th>
-                <th className="sticky top-0 bg-white py-2 pr-2 font-semibold">Kategori</th>
-                <th className="sticky top-0 bg-white py-2 pr-2 font-semibold">Keterangan</th>
-                <th className="sticky top-0 bg-white py-2 pr-2 text-right font-semibold">Masuk</th>
-                <th className="sticky top-0 bg-white py-2 pr-2 text-right font-semibold">Keluar</th>
-                <th className="sticky top-0 bg-white py-2 pr-2 text-right font-semibold">Saldo</th>
+                <th className="sticky top-0 z-10 bg-white pb-2 pt-3 pr-2 font-semibold shadow-[inset_0_-1px_0_#E5E9F0]">Tanggal</th>
+                <th className="sticky top-0 z-10 bg-white pb-2 pt-3 pr-2 font-semibold shadow-[inset_0_-1px_0_#E5E9F0]">Kategori</th>
+                <th className="sticky top-0 z-10 bg-white pb-2 pt-3 pr-2 font-semibold shadow-[inset_0_-1px_0_#E5E9F0]">Keterangan</th>
+                <th className="sticky top-0 z-10 bg-white pb-2 pt-3 pr-2 text-right font-semibold shadow-[inset_0_-1px_0_#E5E9F0]">Masuk</th>
+                <th className="sticky top-0 z-10 bg-white pb-2 pt-3 pr-2 text-right font-semibold shadow-[inset_0_-1px_0_#E5E9F0]">Keluar</th>
+                <th className="sticky top-0 z-10 bg-white pb-2 pt-3 pr-2 text-right font-semibold shadow-[inset_0_-1px_0_#E5E9F0]">Saldo</th>
               </tr>
             </thead>
             <tbody>
