@@ -145,7 +145,7 @@ export default function AreaDashboardPage() {
 
       {/* Tabel ringkasan per store */}
       <h3 className="mb-2 mt-5 text-sm font-extrabold text-[#0F4575]">Ringkasan per Store</h3>
-      <div className="card overflow-x-auto p-4">
+      <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">

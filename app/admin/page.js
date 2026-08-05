@@ -85,7 +85,7 @@ export default function AdminTransaksi() {
         </div>
       </div>
 
-      <div className="card overflow-x-auto p-4">
+      <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">

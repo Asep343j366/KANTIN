@@ -52,7 +52,7 @@ export default function InventoryPage() {
 
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari barang..." className="input my-4" />
 
-      <div className="card overflow-x-auto p-4">
+      <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">
@@ -90,7 +90,7 @@ export default function InventoryPage() {
           {products.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
         </select>
       </div>
-      <div className="card overflow-x-auto p-4">
+      <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">

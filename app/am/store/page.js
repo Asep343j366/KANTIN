@@ -178,7 +178,7 @@ export default function StoreDashboardPage() {
             <Kpi c="#22C55E" label="Uang Masuk" value={rupiah(raw.kas.masuk)} />
             <Kpi c="#EF4444" label="Uang Keluar" value={rupiah(raw.kas.keluar)} />
           </div>
-          <div className="card mt-3 overflow-x-auto p-4">
+          <div className="card mt-3 table-scroll p-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-soft">

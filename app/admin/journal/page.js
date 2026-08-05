@@ -147,7 +147,7 @@ export default function JournalPage() {
 
       {/* Buku kas per bulan (saldo berjalan) */}
       <h2 className="mb-2 mt-5 font-bold">Buku Kas per Bulan</h2>
-      <div className="card overflow-x-auto p-4">
+      <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">
@@ -225,7 +225,7 @@ export default function JournalPage() {
       </div>
 
       <h2 className="mb-2 mt-5 font-bold">Riwayat Kas</h2>
-      <div className="card overflow-x-auto p-4">
+      <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">
@@ -331,29 +331,32 @@ function MonthStatement({ m, storeName, txs, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-extrabold">Buku Kas — {monthLabel(m.bulan)}</h2>
-          <button onClick={onClose} className="text-ink-soft">✕</button>
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-t-2xl bg-white sm:rounded-2xl">
+        {/* Header + ringkasan (sticky, tak ikut scroll) */}
+        <div className="shrink-0 border-b border-gray-100 p-5 pb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-extrabold">Buku Kas — {monthLabel(m.bulan)}</h2>
+            <button onClick={onClose} className="text-ink-soft">✕</button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <SumCell label="Saldo Awal" value={rupiah(m.saldoAwal)} />
+            <SumCell label="Pemasukan" value={`+${rupiah(m.masuk)}`} cls="text-success" />
+            <SumCell label="Pengeluaran" value={`−${rupiah(m.keluar)}`} cls="text-danger" />
+            <SumCell label="Sisa Saldo" value={rupiah(m.sisa)} cls="text-ink" />
+          </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <SumCell label="Saldo Awal" value={rupiah(m.saldoAwal)} />
-          <SumCell label="Pemasukan" value={`+${rupiah(m.masuk)}`} cls="text-success" />
-          <SumCell label="Pengeluaran" value={`−${rupiah(m.keluar)}`} cls="text-danger" />
-          <SumCell label="Sisa Saldo" value={rupiah(m.sisa)} cls="text-ink" />
-        </div>
-
-        <div className="mt-4 overflow-x-auto">
+        {/* Hanya tabel yang bisa di-scroll */}
+        <div className="min-h-0 flex-1 overflow-auto px-5 py-2">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-ink-soft">
-                <th className="py-2 pr-2 font-semibold">Tanggal</th>
-                <th className="py-2 pr-2 font-semibold">Kategori</th>
-                <th className="py-2 pr-2 font-semibold">Keterangan</th>
-                <th className="py-2 pr-2 text-right font-semibold">Masuk</th>
-                <th className="py-2 pr-2 text-right font-semibold">Keluar</th>
-                <th className="py-2 pr-2 text-right font-semibold">Saldo</th>
+                <th className="sticky top-0 bg-white py-2 pr-2 font-semibold">Tanggal</th>
+                <th className="sticky top-0 bg-white py-2 pr-2 font-semibold">Kategori</th>
+                <th className="sticky top-0 bg-white py-2 pr-2 font-semibold">Keterangan</th>
+                <th className="sticky top-0 bg-white py-2 pr-2 text-right font-semibold">Masuk</th>
+                <th className="sticky top-0 bg-white py-2 pr-2 text-right font-semibold">Keluar</th>
+                <th className="sticky top-0 bg-white py-2 pr-2 text-right font-semibold">Saldo</th>
               </tr>
             </thead>
             <tbody>
@@ -371,9 +374,12 @@ function MonthStatement({ m, storeName, txs, onClose }) {
           </table>
         </div>
 
-        <div className="mt-5 flex gap-2">
-          <Button onClick={exportPdf} className="flex-1">Export PDF</Button>
-          <button onClick={onClose} className="btn-outline flex-1 px-4 py-2">Tutup</button>
+        {/* Tombol sticky di bawah */}
+        <div className="shrink-0 border-t border-gray-100 p-4">
+          <div className="flex gap-2">
+            <Button onClick={exportPdf} className="flex-1">Export PDF</Button>
+            <button onClick={onClose} className="btn-outline flex-1 px-4 py-2">Tutup</button>
+          </div>
         </div>
       </div>
     </div>

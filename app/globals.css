@@ -49,6 +49,15 @@ body {
   .container-app { @apply mx-auto w-full max-w-md px-4; }
 }
 
+/* Tabel panjang: batasi tinggi agar muat layar desktop + scrollbar vertikal.
+   Header tabel tetap menempel (sticky) saat isi di-scroll. */
+.table-scroll { max-height: 60vh; overflow: auto; }
+.table-scroll > table thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #fff;
+  box-shadow: inset 0 -1px 0 #E5E9F0;
+}
+
 /* Sembunyikan scrollbar (tetap bisa di-scroll) */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
