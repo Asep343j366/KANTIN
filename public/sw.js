@@ -1,7 +1,7 @@
 // Service worker sederhana untuk PWA Kantin.
 // Strategi: network-first untuk navigasi (agar data selalu fresh),
 // cache-first untuk aset statis, plus offline shell.
-const CACHE = "kantin-v3";
+const CACHE = "kantin-v4";
 const APP_SHELL = ["/", "/offline.html", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -23,8 +23,15 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Jangan cache Supabase / API
+  // Jangan cache Supabase / API lintas-origin
   if (url.origin !== self.location.origin) return;
+
+  // API dinamis (/api/*): SELALU jaringan, jangan pernah sajikan cache basi.
+  // Ini penyebab "Kelola Store" hanya menampilkan sebagian store sampai hard reload.
+  if (url.pathname.startsWith("/api/")) {
+    e.respondWith(fetch(req));
+    return;
+  }
 
   // Navigasi halaman: network-first, fallback offline
   if (req.mode === "navigate") {
