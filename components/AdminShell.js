@@ -17,6 +17,7 @@ const icons = {
   bayar: "M2 7h20v10H2zM2 11h20M6 15h4",
   langganan: "M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6-6.3 4.6L7.9 14 2 9.4h7.6z",
   store: "M3 9l1.5-5h15L21 9M4 9h16v11H4zM9 13h6",
+  area: "M3 12h4v8H3zM10 6h4v14h-4zM17 3h4v17h-4z",
   user: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M20 8v6M23 11h-6",
   setting: "M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.5 2h-5l-.3 2.9a7 7 0 00-1.7 1l-2.4-1-2 3.4L2.1 11a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.3 2.9h5l.3-2.9a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z",
 };
@@ -32,6 +33,7 @@ const links = [
   { href: "/admin/payment", label: "Pembayaran", icon: "bayar" },
   { href: "/admin/subscription", label: "Langganan", icon: "langganan" },
   { href: "/admin/stores", label: "Kelola Store", icon: "store", platformOnly: true },
+  { href: "/admin/am", label: "Area Manager", icon: "area", platformOnly: true },
   { href: "/admin/users", label: "User", icon: "user" },
   { href: "/admin/settings", label: "Pengaturan", icon: "setting" },
 ];
