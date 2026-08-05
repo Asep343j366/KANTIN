@@ -43,6 +43,19 @@ export default function JournalPage() {
   const totalKeluar = rows.filter((r) => r.jenis === "keluar").reduce((s, r) => s + r.jumlah, 0);
   const saldo = totalMasuk - totalKeluar;
 
+  // Rekap kas per bulan (uang masuk/keluar/selisih), urut bulan terbaru dulu.
+  const monthly = (() => {
+    const m = {};
+    rows.forEach((r) => {
+      const key = new Date(r.created_at).toLocaleDateString("en-CA").slice(0, 7); // YYYY-MM lokal
+      if (!m[key]) m[key] = { masuk: 0, keluar: 0 };
+      if (r.jenis === "masuk") m[key].masuk += r.jumlah; else m[key].keluar += r.jumlah;
+    });
+    return Object.entries(m)
+      .map(([bulan, v]) => ({ bulan, ...v, selisih: v.masuk - v.keluar }))
+      .sort((a, b) => (a.bulan < b.bulan ? 1 : -1));
+  })();
+
   function pickJenis(j) {
     setJenis(j);
     setKategori(KATEGORI[j][0]);
@@ -107,6 +120,33 @@ export default function JournalPage() {
         <Kpi c="#1B6FEB" label="Saldo Kas" value={rupiah(saldo)} />
         <Kpi c="#22C55E" label="Uang Masuk" value={rupiah(totalMasuk)} />
         <Kpi c="#EF4444" label="Uang Keluar" value={rupiah(totalKeluar)} />
+      </div>
+
+      {/* Rekap kas per bulan */}
+      <h2 className="mb-2 mt-5 font-bold">Rekap Kas per Bulan</h2>
+      <div className="card overflow-x-auto p-4">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-ink-soft">
+              <th className="py-2 pr-2 font-semibold">Bulan</th>
+              <th className="py-2 pr-2 text-right font-semibold">Uang Masuk</th>
+              <th className="py-2 pr-2 text-right font-semibold">Uang Keluar</th>
+              <th className="py-2 pr-2 text-right font-semibold">Selisih</th>
+            </tr>
+          </thead>
+          <tbody>
+            {monthly.length ? monthly.map((m) => (
+              <tr key={m.bulan} className="border-t border-gray-100">
+                <td className="py-2 pr-2 font-semibold">{monthLabel(m.bulan)}</td>
+                <td className="py-2 pr-2 text-right text-success">+{rupiah(m.masuk)}</td>
+                <td className="py-2 pr-2 text-right text-danger">−{rupiah(m.keluar)}</td>
+                <td className={`py-2 pr-2 text-right font-bold ${m.selisih >= 0 ? "text-success" : "text-danger"}`}>
+                  {m.selisih < 0 ? "−" : ""}{rupiah(Math.abs(m.selisih))}
+                </td>
+              </tr>
+            )) : <tr><td colSpan={4} className="py-8 text-center text-ink-soft">Belum ada data kas.</td></tr>}
+          </tbody>
+        </table>
       </div>
 
       <div className="card mt-4 p-4">
@@ -243,6 +283,12 @@ function JournalDetail({ entry, onClose }) {
       </div>
     </div>
   );
+}
+
+// "2026-08" -> "Agustus 2026"
+function monthLabel(ym) {
+  const [y, mo] = ym.split("-");
+  return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 }
 
 function Row({ l, r }) {
