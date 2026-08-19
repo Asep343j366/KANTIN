@@ -43,6 +43,27 @@ export default function OrderStatus() {
     return () => supabase.removeChannel(ch);
   }, [code]);
 
+  // Polling ke Casaku: cadangan bila webhook gagal/telat terbaca. Setiap 5 detik
+  // tanya status langsung ke Casaku; kalau paid → server settle + reload order.
+  // Berhenti otomatis begitu order tak lagi menunggu pembayaran.
+  useEffect(() => {
+    if (!order) return;
+    const settled = order.status === "selesai" || order.status === "dibatalkan" || order.payment_status === "paid";
+    if (settled || !order.payment_ref) return;
+
+    let stop = false;
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/pay/status?code=${encodeURIComponent(code)}`, { cache: "no-store" });
+        const d = await res.json();
+        if (!stop && (d.status === "paid" || d.status === "cancel" || d.status === "expired")) {
+          loadOrder();
+        }
+      } catch {}
+    }, 5000);
+    return () => { stop = true; clearInterval(id); };
+  }, [code, order?.status, order?.payment_status, order?.payment_ref]);
+
   if (loading) return <div className="container-app pt-10 text-center text-ink-soft">Memuat...</div>;
   if (!order) return (
     <main className="container-app pt-16 text-center">
@@ -53,6 +74,10 @@ export default function OrderStatus() {
 
   const paid = order.status === "selesai";
   const failed = order.status === "dibatalkan" || order.payment_status === "failed";
+  // Nominal UNIK yang wajib dibayar (Casaku menyisipkan kode unik ke amount_charged).
+  // Wajib ditampilkan persis agar pembayaran terverifikasi otomatis.
+  const charged = Number(order.amount_charged || 0);
+  const hasUnique = charged > 0 && charged !== Number(order.total || 0);
 
   return (
     <main className="container-app pb-10 pt-5">
@@ -67,7 +92,17 @@ export default function OrderStatus() {
         <div className="card mb-4 border-l-4 border-amber-400 bg-amber-50 p-4 text-center">
           <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-500" />
           <p className="font-bold text-amber-700">Menunggu pembayaran…</p>
-          <p className="text-sm text-amber-700">Status akan otomatis diperbarui setelah pembayaran QRIS terkonfirmasi.</p>
+          {hasUnique ? (
+            <>
+              <p className="mt-1 text-sm text-amber-700">Bayar PERSIS sebesar</p>
+              <p className="text-2xl font-extrabold text-amber-800">{rupiah(charged)}</p>
+              <p className="mt-0.5 text-xs text-amber-700">
+                Jangan dibulatkan — nominal ini mengandung kode unik agar pembayaran terverifikasi otomatis.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-amber-700">Status akan otomatis diperbarui setelah pembayaran QRIS terkonfirmasi.</p>
+          )}
         </div>
       )}
       {failed && (
@@ -101,6 +136,11 @@ export default function OrderStatus() {
         <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 font-bold">
           <span>Total</span><span className="text-primary">{rupiah(order.total)}</span>
         </div>
+        {hasUnique && !paid && !failed && (
+          <div className="mt-1 flex justify-between text-sm font-semibold text-amber-700">
+            <span>Nominal bayar (unik)</span><span>{rupiah(charged)}</span>
+          </div>
+        )}
         <div className="mt-2 text-sm text-ink-soft">
           <p>Nama: {order.nama_pelanggan}</p>
           <p>HP: {order.no_hp}</p>
