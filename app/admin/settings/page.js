@@ -52,6 +52,7 @@ export default function AdminSettings() {
         jam_operasional: s.jam_operasional || null,
         alamat: s.alamat || null,
         info_rekening: s.info_rekening || null,
+        papan_kejujuran: s.papan_kejujuran || null,
         stok_menipis_threshold: parseInt(s.stok_menipis_threshold) || 5,
         qris_image_url: qris_image_url || null,
       };
@@ -106,6 +107,12 @@ export default function AdminSettings() {
           <label className="mb-1 block text-sm font-semibold">Info Rekening / Instruksi Bayar (Manual)</label>
           <textarea className="input" rows={2} value={s.info_rekening || ""} onChange={(e) => set("info_rekening", e.target.value)}
             placeholder="Contoh: BCA 1234567890 a.n. Budi — atau instruksi pembayaran lain" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">📺 Papan Kejujuran (Kantin TV)</label>
+          <p className="mb-1 text-xs text-ink-soft">Kata-kata yang tampil bergantian di layar TV kantin. <b>Satu kalimat per baris.</b> Kosongkan untuk pakai kata-kata bawaan.</p>
+          <textarea className="input" rows={4} value={s.papan_kejujuran || ""} onChange={(e) => set("papan_kejujuran", e.target.value)}
+            placeholder={"Tidak ada yang mengawasi, kecuali hati nuranimu.\nBayar jujur = kantin ini tetap buka untuk temanmu besok.\nKejujuran kecil hari ini, kepercayaan besar selamanya."} />
         </div>
         {msg && <p className="text-sm text-primary">{msg}</p>}
         <Button onClick={save} loading={saving} className="btn-block">Simpan Pengaturan</Button>

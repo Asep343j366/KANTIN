@@ -32,6 +32,7 @@ export default function KantinTV() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [items, setItems] = useState([]); // item untuk order HARI INI (terlaris + qty)
+  const [settings, setSettings] = useState(null);
   const [now, setNow] = useState(new Date());
   const [qi, setQi] = useState(0);
   const [qVisible, setQVisible] = useState(true);
@@ -44,7 +45,7 @@ export default function KantinTV() {
       // Batasi order ke ~35 hari terakhir: cukup untuk hari ini, kemarin, bulan ini.
       const since = new Date();
       since.setDate(since.getDate() - 35);
-      const [{ data: prod }, { data: ord }] = await Promise.all([
+      const [{ data: prod }, { data: ord }, { data: set }] = await Promise.all([
         supabase
           .from("products")
           .select("id, nama, harga, foto_url, stok, tersedia")
@@ -56,10 +57,16 @@ export default function KantinTV() {
           .eq("status", "selesai")
           .gte("created_at", since.toISOString())
           .order("created_at", { ascending: false }),
+        supabase
+          .from("settings")
+          .select("papan_kejujuran")
+          .eq("store_id", store.id)
+          .maybeSingle(),
       ]);
       const allOrders = ord || [];
       setProducts(prod || []);
       setOrders(allOrders);
+      setSettings(set || null);
 
       // Item untuk order hari ini saja (untuk terlaris + porsi terjual).
       const today = todayStr();
@@ -122,7 +129,7 @@ export default function KantinTV() {
     const t = setInterval(() => {
       setQVisible(false);
       setTimeout(() => {
-        setQi((i) => (i + 1) % QUOTES.length);
+        setQi((i) => i + 1);
         setQVisible(true);
       }, 400);
     }, 8000);
@@ -167,6 +174,16 @@ export default function KantinTV() {
       menuTersedia, terlaris, etalase, feed,
     };
   }, [orders, items, products]);
+
+  // Kata-kata Papan Kejujuran: dari settings (1 kalimat/baris) atau bawaan.
+  const quotes = useMemo(() => {
+    const custom = (settings?.papan_kejujuran || "")
+      .split("\n")
+      .map((q) => q.trim())
+      .filter(Boolean);
+    return custom.length ? custom : QUOTES;
+  }, [settings]);
+  const curQuote = quotes[qi % quotes.length];
 
   const maxQty = m.terlaris[0]?.qty || 1;
   // Marquee: gandakan daftar agar loop mulus; durasi menyesuaikan jumlah.
@@ -240,8 +257,8 @@ export default function KantinTV() {
         </div>
 
         <div style={S.quoteCard}>
-          <i className="ti ti-quote" style={{ fontSize: 26, color: "#BA7517" }} />
-          <div style={{ ...S.quoteText, opacity: qVisible ? 1 : 0 }}>&ldquo;{QUOTES[qi]}&rdquo;</div>
+          <i className="ti ti-quote" style={{ fontSize: 38, color: "#BA7517" }} />
+          <div style={{ ...S.quoteText, opacity: qVisible ? 1 : 0 }}>&ldquo;{curQuote}&rdquo;</div>
           <div style={S.quoteTag}>PAPAN KEJUJURAN</div>
         </div>
       </div>
@@ -343,9 +360,9 @@ const S = {
   barTrack: { height: 7, background: "#E2E8F2", borderRadius: 4, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 4 },
 
-  quoteCard: { background: "#EAF3FB", border: "0.5px solid #B5D4F4", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
-  quoteText: { fontFamily: "var(--font-voice, Georgia, serif)", fontSize: 19, lineHeight: 1.4, color: "#0C447C", margin: "8px 0", transition: "opacity .4s", maxWidth: 420 },
-  quoteTag: { fontSize: 10, color: "#378ADD", letterSpacing: 2, fontWeight: 600 },
+  quoteCard: { background: "#EAF3FB", border: "0.5px solid #B5D4F4", borderRadius: 12, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
+  quoteText: { fontFamily: "var(--font-voice, Georgia, serif)", fontSize: 30, fontWeight: 600, lineHeight: 1.35, color: "#0C447C", margin: "14px 0", transition: "opacity .4s", maxWidth: 560 },
+  quoteTag: { fontSize: 12, color: "#378ADD", letterSpacing: 2.5, fontWeight: 600 },
 
   rowKpi: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, flex: "0 0 auto" },
   kpiCard: { ...CARD, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 },
