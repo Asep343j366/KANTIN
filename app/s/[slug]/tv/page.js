@@ -189,6 +189,7 @@ export default function KantinTV() {
       {/* KPI */}
       <div style={S.kpiRow}>
         <Kpi icon="ti-shopping-cart" label="Penjualan Hari Ini" value={`Rp ${fmt(m.omzetToday)}`} />
+        <Kpi icon="ti-clock" iconColor="#C77D11" label="Menunggu Verifikasi" value={fmt(m.pending.length)} />
         <Kpi icon="ti-receipt" label="Transaksi" value={fmt(m.trxToday)} />
         <Kpi icon="ti-box" label="Produk Tersedia" value={fmt(m.produkTersedia)} />
         <Kpi icon="ti-calendar-dollar" label="Omzet Bulan Ini" value={`Rp ${fmt(m.omzetMonth)}`} />
@@ -304,10 +305,10 @@ export default function KantinTV() {
   );
 }
 
-function Kpi({ icon, label, value }) {
+function Kpi({ icon, label, value, iconColor = "#F26F21" }) {
   return (
     <div style={S.kpiCard}>
-      <i className={`ti ${icon}`} style={{ fontSize: 28, color: "#F26F21" }} />
+      <i className={`ti ${icon}`} style={{ fontSize: 28, color: iconColor }} />
       <div style={{ minWidth: 0 }}>
         <div style={S.kpiLabel}>{label}</div>
         <div style={S.kpiValue}>{value}</div>
@@ -387,7 +388,7 @@ const S = {
   sim: { fontSize: 10, letterSpacing: 1, color: "#9FB0CC" },
   clockWrap: { display: "flex", alignItems: "center", gap: 8, fontSize: 19, fontWeight: 700 },
 
-  kpiRow: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, flex: "0 0 auto" },
+  kpiRow: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, flex: "0 0 auto" },
   kpiCard: { background: "#fff", borderRadius: 12, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 },
   kpiLabel: { fontSize: 11, color: "#5A6577", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   kpiValue: { fontSize: 22, fontWeight: 800, color: NAVY },
