@@ -67,14 +67,22 @@ export default function CheckoutPage() {
       )
       .subscribe();
 
-    // Polling cadangan ke Casaku (hanya relevan mode casaku; manual di-short-circuit server).
+    // Polling andal (tak bergantung realtime yang mungkin belum di-enable):
+    // 1) cek status order LANGSUNG ke DB → menangkap settle MANUAL maupun casaku.
+    // 2) cadangan casaku: minta server cek ke Casaku (settle bila webhook telat).
     const poll = setInterval(async () => {
+      if (stopped) return;
+      try {
+        const { data: o } = await supabase
+          .from("orders").select("status").eq("kode_pesanan", kode).maybeSingle();
+        if (!stopped && o?.status === "selesai") return goPaid();
+      } catch {}
       try {
         const res = await fetch(`/api/pay/status?code=${encodeURIComponent(kode)}`, { cache: "no-store" });
         const d = await res.json();
         if (!stopped && d.status === "paid") goPaid();
       } catch {}
-    }, 5000);
+    }, 4000);
 
     return () => { stopped = true; supabase.removeChannel(ch); clearInterval(poll); };
   }, [step, kode, slug, router]);
@@ -285,6 +293,8 @@ export default function CheckoutPage() {
               <p className="text-xs text-amber-700">Jangan tutup halaman ini. Status dicek otomatis — begitu lunas kamu langsung diarahkan ke struk.</p>
             </div>
           </div>
+
+          <OrderSummary items={items} total={total} />
 
           <p className="text-center text-xs text-ink-soft">Kode pesanan: <b>{kode}</b></p>
           <Link href={storePath(slug)} className="btn-outline block text-center">Batalkan / Kembali ke Menu</Link>
