@@ -2,9 +2,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import { storePath } from "@/lib/slug";
+import { compressImage } from "@/lib/compressImage";
 import Receipt from "@/components/Receipt";
 
 export default function OrderStatus() {
@@ -14,6 +16,10 @@ export default function OrderStatus() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [qrImg, setQrImg] = useState("");
+  const [buktiBusy, setBuktiBusy] = useState(false);
+  const [buktiMsg, setBuktiMsg] = useState("");
+  const [buktiErr, setBuktiErr] = useState("");
 
   async function loadOrder() {
     const { data: o } = await supabase.from("orders").select("*").eq("kode_pesanan", code).single();
@@ -64,6 +70,63 @@ export default function OrderStatus() {
     return () => { stop = true; clearInterval(id); };
   }, [code, order?.status, order?.payment_status, order?.payment_ref]);
 
+  // Render ulang QRIS dinamis (Casaku) dari qr_string tersimpan, selama pending.
+  useEffect(() => {
+    if (!order || order.status === "selesai" || order.status === "dibatalkan") { setQrImg(""); return; }
+    if (order.qr_string) QRCode.toDataURL(order.qr_string, { width: 280, margin: 1 }).then(setQrImg).catch(() => {});
+    else setQrImg("");
+  }, [order?.qr_string, order?.status]);
+
+  async function downloadQris(src) {
+    if (!src) return;
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `qris-${code}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { window.open(src, "_blank"); }
+  }
+
+  async function onUploadBukti(e) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f || !order?.id) return;
+    setBuktiErr(""); setBuktiMsg(""); setBuktiBusy(true);
+    try {
+      const up = await compressImage(f);
+      const path = `bukti-${code}-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("payments").upload(path, up, { upsert: true });
+      if (upErr) throw upErr;
+      const bukti_url = supabase.storage.from("payments").getPublicUrl(path).data.publicUrl;
+      setBuktiMsg("Memeriksa bukti pembayaran…");
+      const res = await fetch("/api/pay/verify-proof", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: order.id, bukti_url }),
+      });
+      const d = await res.json();
+      if (d.status === "auto" || d.status === "already_paid") {
+        setBuktiMsg("Pembayaran terverifikasi!");
+        loadOrder();
+      } else {
+        const why = {
+          no_key: "verifikasi otomatis belum aktif",
+          ai_quota: "kuota pembaca otomatis penuh",
+          ai_model_404: "model AI tak ditemukan",
+          amount_mismatch: d.detected != null ? `nominal terbaca Rp${Number(d.detected).toLocaleString("id-ID")}, seharusnya Rp${Number(d.expected || 0).toLocaleString("id-ID")}` : "nominal tak cocok",
+          not_valid_proof: "foto belum terbaca sebagai bukti berhasil",
+          no_image: "foto tak terbaca",
+        }[d.reason] || "perlu dicek admin";
+        setBuktiMsg(`Bukti sudah diterima (${why}). Pembayaran akan segera diverifikasi admin.`);
+      }
+    } catch (err) {
+      setBuktiErr("Gagal mengunggah bukti: " + (err.message || err));
+    }
+    setBuktiBusy(false);
+  }
+
   if (loading) return <div className="container-app pt-10 text-center text-ink-soft">Memuat...</div>;
   if (!order) return (
     <main className="container-app pt-16 text-center">
@@ -105,6 +168,48 @@ export default function OrderStatus() {
           )}
         </div>
       )}
+
+      {!paid && !failed && (qrImg || settings?.qris_image_url || settings?.info_rekening) && (
+        <div className="card mb-4 p-4 text-center">
+          <h2 className="font-bold">Scan & Bayar via QRIS</h2>
+          {(qrImg || settings?.qris_image_url) && (
+            <>
+              <div className="mx-auto mt-3 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrImg || settings.qris_image_url} alt="QRIS Pembayaran" className="w-full" />
+              </div>
+              <button type="button" onClick={() => downloadQris(qrImg || settings.qris_image_url)}
+                className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Download QRIS
+              </button>
+            </>
+          )}
+          {settings?.info_rekening && !qrImg && (
+            <div className="mx-auto mt-3 max-w-xs whitespace-pre-line rounded-xl bg-surface p-3 text-left text-sm">
+              {settings.info_rekening}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!paid && !failed && (
+        <div className="card mb-4 p-4">
+          <h2 className="font-bold">Sudah bayar? Upload bukti</h2>
+          <p className="mt-1 text-xs text-ink-soft">
+            Jika sudah transfer / scan QRIS tetapi status belum berubah, unggah screenshot bukti pembayaran.
+            Bukti yang valid & nominalnya cocok akan otomatis lunas; selain itu diverifikasi admin.
+          </p>
+          <label className={`btn-outline mt-3 inline-flex cursor-pointer items-center gap-2 ${buktiBusy ? "pointer-events-none opacity-60" : ""}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            {buktiBusy ? "Memproses…" : "Upload Bukti Pembayaran"}
+            <input type="file" accept="image/*" className="hidden" onChange={onUploadBukti} disabled={buktiBusy} />
+          </label>
+          {buktiMsg && <p className="mt-2 text-sm font-semibold text-primary">{buktiMsg}</p>}
+          {buktiErr && <p className="mt-2 text-sm text-danger">{buktiErr}</p>}
+        </div>
+      )}
+
       {failed && (
         <div className="card mb-4 border-l-4 border-danger bg-red-50 p-4 text-center">
           <p className="font-bold text-red-700">Pembayaran gagal / kedaluwarsa</p>

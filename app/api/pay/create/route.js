@@ -49,7 +49,7 @@ export async function POST(request) {
 
     await db
       .from("orders")
-      .update({ payment_ref: txnId, payment_status: "pending", amount_charged: totalAmount })
+      .update({ payment_ref: txnId, payment_status: "pending", amount_charged: totalAmount, qr_string: qr })
       .eq("id", order_id);
 
     return Response.json({
