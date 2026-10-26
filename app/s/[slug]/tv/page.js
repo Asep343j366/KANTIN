@@ -43,12 +43,13 @@ function isOpen(jam) {
   return b >= a ? cur >= a && cur <= b : cur >= a || cur <= b; // lewat tengah malam
 }
 
-const PAGE = 6; // produk per halaman Menu Favorit
+const PAGE = 3; // produk per halaman Menu Favorit (1 baris)
 
 export default function KantinTV() {
   const store = useStore();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [todayAll, setTodayAll] = useState([]); // order hari ini SEMUA status
   const [settings, setSettings] = useState(null);
   const [qr, setQr] = useState(null);
   const [url, setUrl] = useState("");
@@ -64,15 +65,21 @@ export default function KantinTV() {
     try {
       const since = new Date();
       since.setDate(1); since.setHours(0, 0, 0, 0); // awal bulan (untuk omzet bulan)
-      const [{ data: prod }, { data: ord }, { data: set }] = await Promise.all([
+      const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0); // awal hari ini
+      const [{ data: prod }, { data: ord }, { data: todays }, { data: set }] = await Promise.all([
         supabase.from("products").select("id, nama, harga, foto_url, stok, tersedia").eq("store_id", store.id),
         supabase.from("orders").select("id, total, created_at, status")
           .eq("store_id", store.id).eq("status", "selesai")
           .gte("created_at", since.toISOString()),
+        // Hari ini SEMUA status → untuk kartu Transaksi (sukses & pending).
+        supabase.from("orders").select("id, nama_pelanggan, total, created_at, status")
+          .eq("store_id", store.id).gte("created_at", dayStart.toISOString())
+          .order("created_at", { ascending: false }),
         supabase.from("settings").select("papan_kejujuran, jam_operasional").eq("store_id", store.id).maybeSingle(),
       ]);
       setProducts(prod || []);
       setOrders(ord || []);
+      setTodayAll(todays || []);
       setSettings(set || null);
     } finally {
       loadingRef.current = false;
@@ -140,13 +147,16 @@ export default function KantinTV() {
     const month = today.slice(0, 7);
     const todays = orders.filter((o) => ymd(o.created_at) === today);
     const months = orders.filter((o) => ymd(o.created_at).slice(0, 7) === month);
+    const sukses = todayAll.filter((o) => o.status === "selesai");
+    const pending = todayAll.filter((o) => o.status !== "selesai" && o.status !== "dibatalkan");
     return {
       omzetToday: todays.reduce((s, o) => s + Number(o.total || 0), 0),
       omzetMonth: months.reduce((s, o) => s + Number(o.total || 0), 0),
       trxToday: todays.length,
       produkTersedia: avail.length,
+      sukses, pending,
     };
-  }, [orders, avail]);
+  }, [orders, avail, todayAll]);
 
   const quotes = useMemo(() => {
     const custom = (settings?.papan_kejujuran || "").split("\n").map((q) => q.trim()).filter(Boolean);
@@ -188,23 +198,61 @@ export default function KantinTV() {
 
       {/* Main */}
       <div style={S.main}>
-        {/* Menu Favorit */}
-        <div style={S.menuCard}>
-          <div style={S.h2}>MENU FAVORIT<div style={S.accent} /></div>
-          <div style={S.menuGrid}>
-            {shown.length === 0 && <div style={{ color: "#8A93A5", gridColumn: "1/-1", alignSelf: "center", textAlign: "center" }}>Belum ada menu tersedia.</div>}
-            {shown.map((p) => (
-              <div key={p.id} style={S.prod}>
-                <div style={{ ...S.prodImg, backgroundImage: p.foto_url ? `url(${p.foto_url})` : "none" }}>
-                  {!p.foto_url && <i className="ti ti-tools-kitchen-2" style={{ fontSize: 34, color: "#1B2E54", opacity: 0.4 }} />}
-                  <span style={S.tersedia}><i className="ti ti-circle-check" /> Tersedia</span>
-                </div>
-                <div style={S.prodFoot}>
-                  <div style={S.prodName}>{p.nama}</div>
-                  <div style={S.prodPrice}>Rp {fmt(p.harga)}</div>
+        {/* Kolom kiri: Transaksi Hari Ini (atas) + Menu Favorit 1 baris (bawah) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0 }}>
+          <div style={S.trxCard}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ ...S.h2, fontSize: 18 }}>TRANSAKSI HARI INI<div style={S.accent} /></div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <div style={S.trxChipOk}><i className="ti ti-circle-check" /> {fmt(m.sukses.length)} sukses</div>
+                <div style={S.trxChipPend}><i className="ti ti-clock" /> {fmt(m.pending.length)} menunggu</div>
+              </div>
+            </div>
+            <div style={S.trxCols}>
+              <div style={S.trxCol}>
+                <div style={S.trxColHead}><i className="ti ti-circle-check" style={{ color: "#2E9E4F" }} /> Sudah Bayar</div>
+                <div style={S.trxList}>
+                  {m.sukses.length === 0 && <div style={S.trxEmpty}>Belum ada.</div>}
+                  {m.sukses.slice(0, 8).map((o) => (
+                    <div key={o.id} style={S.trxRow}>
+                      <span style={S.trxName}><i className="ti ti-user" style={{ color: "#2E9E4F", fontSize: 14 }} /> {o.nama_pelanggan || "Pembeli"}</span>
+                      <span style={{ color: "#2E9E4F", fontWeight: 700, flex: "0 0 auto" }}>Rp {fmt(o.total)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+              <div style={S.trxCol}>
+                <div style={S.trxColHead}><i className="ti ti-clock" style={{ color: "#C77D11" }} /> Menunggu Verifikasi</div>
+                <div style={S.trxList}>
+                  {m.pending.length === 0 && <div style={S.trxEmpty}>Tidak ada antrean.</div>}
+                  {m.pending.slice(0, 8).map((o) => (
+                    <div key={o.id} style={S.trxRow}>
+                      <span style={S.trxName}><i className="ti ti-user-clock" style={{ color: "#C77D11", fontSize: 14 }} /> {o.nama_pelanggan || "Pembeli"}</span>
+                      <span style={{ color: "#8A93A5", flex: "0 0 auto" }}>{new Date(o.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={S.menuCard}>
+            <div style={S.h2}>MENU FAVORIT<div style={S.accent} /></div>
+            <div style={S.menuGrid}>
+              {shown.length === 0 && <div style={{ color: "#8A93A5", gridColumn: "1/-1", alignSelf: "center", textAlign: "center" }}>Belum ada menu tersedia.</div>}
+              {shown.map((p) => (
+                <div key={p.id} style={S.prod}>
+                  <div style={{ ...S.prodImg, backgroundImage: p.foto_url ? `url(${p.foto_url})` : "none" }}>
+                    {!p.foto_url && <i className="ti ti-tools-kitchen-2" style={{ fontSize: 34, color: "#1B2E54", opacity: 0.4 }} />}
+                    <span style={S.tersedia}><i className="ti ti-circle-check" /> Tersedia</span>
+                  </div>
+                  <div style={S.prodFoot}>
+                    <div style={S.prodName}>{p.nama}</div>
+                    <div style={S.prodPrice}>Rp {fmt(p.harga)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -323,10 +371,21 @@ const S = {
   statusBadge: { marginTop: 3, display: "inline-block", color: "#fff", fontSize: 14, fontWeight: 800, padding: "2px 16px", borderRadius: 7 },
 
   main: { display: "grid", gridTemplateColumns: "1.9fr 1fr", gap: 12, flex: 1, minHeight: 0 },
-  menuCard: { background: "#fff", borderRadius: 14, padding: "14px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0 },
+  menuCard: { background: "#fff", borderRadius: 14, padding: "14px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0, flex: "0 0 42%" },
   h2: { fontSize: 20, fontWeight: 800 },
   accent: { width: 52, height: 4, background: ORANGE, borderRadius: 3, marginTop: 4 },
-  menuGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gridTemplateRows: "1fr 1fr", gap: 10, marginTop: 10, flex: 1, minHeight: 0 },
+  menuGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 10, flex: 1, minHeight: 0 },
+
+  trxCard: { background: "#fff", borderRadius: 14, padding: "12px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0, flex: 1 },
+  trxChipOk: { display: "flex", alignItems: "center", gap: 5, background: "#E3F6E9", color: "#2E9E4F", fontSize: 13, fontWeight: 800, padding: "4px 11px", borderRadius: 8 },
+  trxChipPend: { display: "flex", alignItems: "center", gap: 5, background: "#FBEEDB", color: "#C77D11", fontSize: 13, fontWeight: 800, padding: "4px 11px", borderRadius: 8 },
+  trxCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 10, flex: 1, minHeight: 0 },
+  trxCol: { display: "flex", flexDirection: "column", minHeight: 0 },
+  trxColHead: { fontSize: 12, fontWeight: 700, color: "#5A6577", display: "flex", alignItems: "center", gap: 6, paddingBottom: 6, borderBottom: "2px solid #EEF1F6" },
+  trxList: { overflow: "hidden", flex: 1, marginTop: 4 },
+  trxRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "5px 0", borderBottom: "1px solid #F3F5F9" },
+  trxName: { display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 },
+  trxEmpty: { fontSize: 12, color: "#9AA3B2", padding: "6px 0" },
   prod: { border: "1px solid #EEF1F6", borderRadius: 11, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 },
   prodImg: { flex: 1, minHeight: 0, background: "#fff", backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" },
   tersedia: { position: "absolute", top: 7, right: 7, background: "#E3F6E9", color: "#2E9E4F", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 3 },
