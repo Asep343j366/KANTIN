@@ -27,7 +27,7 @@ export default function PendingPage() {
     if (!s?.store_id) { setOrders([]); setLoading(false); return; }
     const { data } = await supabase
       .from("orders")
-      .select("id, kode_pesanan, nama_pelanggan, no_hp, total, amount_charged, payment_ref, payment_status, created_at")
+      .select("id, kode_pesanan, nama_pelanggan, no_hp, total, amount_charged, payment_ref, payment_status, bukti_bayar_url, created_at")
       .eq("store_id", s.store_id)
       .eq("payment_status", "pending")
       .order("created_at", { ascending: false });
@@ -185,6 +185,13 @@ export default function PendingPage() {
                 </p>
                 <p className="text-xs text-ink-soft">{fmtDateTime(o.created_at)} · {o.no_hp}</p>
                 <p className="text-xs text-ink-soft">Ref: {o.payment_ref || "—"}</p>
+                {o.bukti_bayar_url && (
+                  <a href={o.bukti_bayar_url} target="_blank" rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary underline">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+                    Lihat bukti pembayaran
+                  </a>
+                )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
