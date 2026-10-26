@@ -58,10 +58,16 @@ export async function POST(request) {
 
     const body = JSON.stringify({
       contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }] }],
-      generationConfig: { temperature: 0, maxOutputTokens: 120 },
+      // maxOutputTokens cukup besar + paksa output JSON agar hasil pasti terbaca
+      // (model kecil/thinking sebelumnya kehabisan token → teks kosong).
+      generationConfig: { temperature: 0, maxOutputTokens: 800, responseMimeType: "application/json" },
     });
-    // Deteksi model yang DIDUKUNG key ini (hindari 404 nama model yang beda
-    // per key/region). Fallback ke daftar statis bila ListModels gagal.
+
+    // Deteksi model yang DIDUKUNG key ini; utamakan flash stabil, hindari
+    // varian thinking/exp/tts/image/embedding (bisa 400 / tak keluarkan teks).
+    const bad = /embedding|tts|image-generation|imagen|live|thinking|-exp/i;
+    const rank = (n) =>
+      /2\.0-flash\b/.test(n) ? 0 : /flash-latest/.test(n) ? 1 : /1\.5-flash\b/.test(n) ? 2 : /2\.5-flash\b/.test(n) ? 3 : 5;
     let models = [];
     try {
       const lr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -70,28 +76,38 @@ export async function POST(request) {
         models = (lj.models || [])
           .filter((mm) => (mm.supportedGenerationMethods || []).includes("generateContent") && /flash/i.test(mm.name))
           .map((mm) => mm.name.replace(/^models\//, ""))
-          .sort((a, b) => (/2\.|2-/.test(b) ? 1 : 0) - (/2\.|2-/.test(a) ? 1 : 0)); // utamakan flash 2.x
+          .filter((n) => !bad.test(n))
+          .sort((a, b) => rank(a) - rank(b));
       }
     } catch {}
     if (process.env.GEMINI_MODEL) models.unshift(process.env.GEMINI_MODEL);
     if (!models.length) models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"];
+
+    // Coba tiap model; model yang 400/404/empty → lanjut ke model berikutnya.
     for (const model of models) {
-      const gRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body }
-      );
+      let gRes;
+      try {
+        gRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body }
+        );
+      } catch { reason = "ai_network"; continue; }
+
       if (gRes.ok) {
-        const gJson = await gRes.json();
-        const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const m = text.match(/\{[\s\S]*\}/);
-        if (m) verdict = JSON.parse(m[0]);
-        break;
+        try {
+          const gJson = await gRes.json();
+          const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          const m = text.match(/\{[\s\S]*\}/);
+          if (m) { verdict = JSON.parse(m[0]); break; }
+          reason = "ai_empty"; detail = (text || JSON.stringify(gJson)).slice(0, 180);
+          continue;
+        } catch { reason = "ai_parse"; continue; }
       }
       if (gRes.status === 429) { reason = "ai_quota"; break; }
-      if (gRes.status === 404) { reason = "ai_model_404"; continue; } // coba model lain
+      if (gRes.status === 404) { reason = "ai_model_404"; continue; }
       reason = "ai_http_" + gRes.status;
       try { const et = await gRes.json(); detail = (et?.error?.message || JSON.stringify(et)).slice(0, 180); } catch {}
-      break;
+      continue;
     }
   } catch {
     verdict = null;
@@ -100,11 +116,13 @@ export async function POST(request) {
   if (!verdict) return Response.json({ status: "manual", reason, detail, expected });
 
   const detected = Number(verdict.amount);
-  // Cocok bila sama persis, ATAU terbaca dalam "sen" (mis. 802.00 -> 80200)
-  // yang jika dibagi 100 sama dengan nominal unik.
+  // Terima bila nominal terbaca cocok dengan nominal unik (amount_charged, mis.
+  // 401) ATAU total dasar (mis. 400) — keduanya sah. Plus toleransi "sen"
+  // (mis. 401.00 terbaca 40100 → /100 = 401).
+  const targets = [Number(order.amount_charged), Number(order.total)].filter((x) => x > 0);
   const amountOk =
-    Number.isFinite(detected) && expected > 0 &&
-    (detected === expected || Math.round(detected / 100) === expected);
+    Number.isFinite(detected) && targets.length > 0 &&
+    targets.some((t) => detected === t || Math.round(detected / 100) === t);
   const valid = verdict.is_proof === true && verdict.success === true && amountOk;
 
   if (!valid) {
