@@ -361,7 +361,7 @@ const S = {
   barFill: { height: "100%", borderRadius: 4 },
 
   quoteCard: { background: "#EAF3FB", border: "0.5px solid #B5D4F4", borderRadius: 12, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
-  quoteText: { fontFamily: "var(--font-voice, Georgia, serif)", fontSize: 30, fontWeight: 600, lineHeight: 1.35, color: "#0C447C", margin: "14px 0", transition: "opacity .4s", maxWidth: 560 },
+  quoteText: { fontFamily: "var(--font-voice, Georgia, serif)", fontSize: 24, fontWeight: 600, lineHeight: 1.4, color: "#0C447C", margin: "12px 0", transition: "opacity .4s", maxWidth: 480 },
   quoteTag: { fontSize: 12, color: "#378ADD", letterSpacing: 2.5, fontWeight: 600 },
 
   rowKpi: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, flex: "0 0 auto" },
