@@ -36,8 +36,11 @@ export async function POST(request) {
   // Tanpa key atau tanpa url bukti → tak bisa auto-analisa → manual.
   if (!key || !bukti_url) return Response.json({ status: "manual", reason: key ? "no_image" : "no_key" });
 
-  // Analisa foto via Gemini.
+  // Analisa foto via Gemini. APA PUN yang gagal (kuota habis/429, error,
+  // jaringan, respons tak bisa diparse) → jatuh ke verifikasi MANUAL, tidak
+  // pernah melempar error ke pelanggan.
   let verdict = null;
+  let reason = "ai_error";
   try {
     const imgRes = await fetch(bukti_url);
     const mime = imgRes.headers.get("content-type") || "image/jpeg";
@@ -61,15 +64,21 @@ export async function POST(request) {
         }),
       }
     );
-    const gJson = await gRes.json();
-    const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const m = text.match(/\{[\s\S]*\}/);
-    if (m) verdict = JSON.parse(m[0]);
+
+    if (!gRes.ok) {
+      // 429 = kuota/rate limit free-tier habis → biarkan manual, jangan error.
+      reason = gRes.status === 429 ? "ai_quota" : "ai_http_" + gRes.status;
+    } else {
+      const gJson = await gRes.json();
+      const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const m = text.match(/\{[\s\S]*\}/);
+      if (m) verdict = JSON.parse(m[0]);
+    }
   } catch {
     verdict = null;
   }
 
-  if (!verdict) return Response.json({ status: "manual", reason: "ai_error" });
+  if (!verdict) return Response.json({ status: "manual", reason });
 
   const detected = Number(verdict.amount);
   const amountOk = Number.isFinite(detected) && expected > 0 && detected === expected;
