@@ -1,7 +1,7 @@
 // Service worker sederhana untuk PWA Kantin.
 // Strategi: network-first untuk navigasi (agar data selalu fresh),
 // cache-first untuk aset statis, plus offline shell.
-const CACHE = "kantin-v4";
+const CACHE = "kantin-v5";
 const APP_SHELL = ["/", "/offline.html", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
