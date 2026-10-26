@@ -1,4 +1,4 @@
-# Panduan Admin — Login & Pengelolaan Kantin
+# Panduan Admin — Login & Pengelolaan Kantin 
 
 Halaman admin dipakai untuk memverifikasi pembayaran, mengubah status pesanan, mengelola produk, dan mengatur QRIS. Login admin **tidak memakai pendaftaran publik** — akun admin dibuat manual di Supabase agar hanya orang yang berwenang yang bisa masuk.
 
