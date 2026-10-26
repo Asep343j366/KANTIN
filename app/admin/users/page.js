@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { fmtDateTime } from "@/lib/format";
+import { confirmDialog } from "@/lib/confirmDialog";
 import Button from "@/components/Button";
 
 export default function UsersPage() {
@@ -49,7 +50,12 @@ export default function UsersPage() {
   }
 
   async function delUser(id) {
-    if (!confirm("Hapus admin ini?")) return;
+    if (!(await confirmDialog({
+      title: "Hapus Admin",
+      message: "Hapus admin ini? Akun tidak bisa dipulihkan.",
+      confirmLabel: "Ya, Hapus",
+      danger: true,
+    }))) return;
     const t = await token();
     const res = await fetch("/api/admin/users", {
       method: "DELETE",

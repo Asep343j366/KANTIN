@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import { confirmDialog } from "@/lib/confirmDialog";
 import Button from "@/components/Button";
 
 export default function PendingPage() {
@@ -42,7 +43,11 @@ export default function PendingPage() {
 
   async function settle(o) {
     setErr(""); setMsg("");
-    if (!confirm(`Tandai LUNAS manual pesanan ${o.kode_pesanan} sebesar ${rupiah(o.amount_charged || o.total)}?\n\nLakukan HANYA jika pembayaran benar-benar sudah masuk.`)) return;
+    if (!(await confirmDialog({
+      title: "Tandai Lunas Manual",
+      message: `Tandai LUNAS pesanan ${o.kode_pesanan} sebesar ${rupiah(o.amount_charged || o.total)}?\n\nLakukan HANYA jika pembayaran benar-benar sudah masuk.`,
+      confirmLabel: "Ya, Tandai Lunas",
+    }))) return;
     setSettlingId(o.id);
     const t = await token();
     const res = await fetch("/api/admin/settle", {
@@ -59,7 +64,12 @@ export default function PendingPage() {
 
   async function cancel(o) {
     setErr(""); setMsg("");
-    if (!confirm(`Batalkan pesanan ${o.kode_pesanan} (${o.nama_pelanggan})?\n\nGunakan untuk transaksi ganda atau yang sudah kamu catat manual di jurnal. Order akan hilang dari daftar ini.`)) return;
+    if (!(await confirmDialog({
+      title: "Batalkan Pesanan",
+      message: `Batalkan pesanan ${o.kode_pesanan} (${o.nama_pelanggan})?\n\nGunakan untuk transaksi ganda atau yang sudah kamu catat manual di jurnal. Order akan hilang dari daftar ini.`,
+      confirmLabel: "Ya, Batalkan",
+      danger: true,
+    }))) return;
     setCancelingId(o.id);
     const t = await token();
     const res = await fetch("/api/admin/order-cancel", {

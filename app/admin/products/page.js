@@ -5,6 +5,7 @@ import { getMyStore } from "@/lib/store";
 import { rupiah } from "@/lib/format";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const empty = { nama: "", deskripsi: "", harga: "", hpp: "", category_id: "", stok: "", tersedia: true, foto_url: "" };
 
@@ -26,7 +27,12 @@ export default function AdminProducts() {
   useEffect(() => { load(); }, []);
 
   async function del(id) {
-    if (!confirm("Hapus produk ini?")) return;
+    if (!(await confirmDialog({
+      title: "Hapus Produk",
+      message: "Hapus produk ini? Tindakan ini tidak bisa dibatalkan.",
+      confirmLabel: "Ya, Hapus",
+      danger: true,
+    }))) return;
     await supabase.from("products").delete().eq("id", id);
     load();
   }
