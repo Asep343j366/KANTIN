@@ -45,6 +45,40 @@ export default function CheckoutPage() {
 
   const total = cartTotal(items);
 
+  // Verifikasi pembayaran DI TEMPAT (step 2): QR tetap tampil sambil dicek
+  // realtime + polling. Begitu lunas → auto lanjut ke nota (/order/<kode>).
+  // Mekanisme sama persis dengan halaman /order/[code] (tak ubah server).
+  useEffect(() => {
+    if (step !== 2 || !kode) return;
+    let stopped = false;
+    const goPaid = () => {
+      if (stopped) return;
+      stopped = true;
+      router.replace(storePath(slug, `/order/${kode}`));
+    };
+
+    // Realtime: webhook Casaku / settle manual admin meng-UPDATE order → selesai.
+    const ch = supabase
+      .channel(`pay-${kode}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `kode_pesanan=eq.${kode}` },
+        (payload) => { if (payload.new?.status === "selesai") goPaid(); }
+      )
+      .subscribe();
+
+    // Polling cadangan ke Casaku (hanya relevan mode casaku; manual di-short-circuit server).
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/pay/status?code=${encodeURIComponent(kode)}`, { cache: "no-store" });
+        const d = await res.json();
+        if (!stopped && d.status === "paid") goPaid();
+      } catch {}
+    }, 5000);
+
+    return () => { stopped = true; supabase.removeChannel(ch); clearInterval(poll); };
+  }, [step, kode, slug, router]);
+
   async function proceedToPayment() {
     setError("");
     if (!store?.id) return setError("Toko tidak dikenali. Muat ulang halaman.");
@@ -243,10 +277,17 @@ export default function CheckoutPage() {
           )}
 
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button onClick={() => router.push(storePath(slug, `/order/${kode}`))} className="btn-block">
-            Lihat Status Pesanan
-          </Button>
-          <Link href={storePath(slug)} className="btn-outline block text-center">Kembali ke Menu</Link>
+
+          <div className="card flex items-center justify-center gap-3 border-l-4 border-amber-400 bg-amber-50 p-4">
+            <span className="h-6 w-6 animate-spin rounded-full border-4 border-amber-200 border-t-amber-500" />
+            <div className="text-left">
+              <p className="text-sm font-bold text-amber-700">Menunggu pembayaran…</p>
+              <p className="text-xs text-amber-700">Jangan tutup halaman ini. Status dicek otomatis — begitu lunas kamu langsung diarahkan ke struk.</p>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-ink-soft">Kode pesanan: <b>{kode}</b></p>
+          <Link href={storePath(slug)} className="btn-outline block text-center">Batalkan / Kembali ke Menu</Link>
         </div>
       )}
     </main>
