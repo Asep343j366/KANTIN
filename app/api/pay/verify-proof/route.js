@@ -59,10 +59,21 @@ export async function POST(request) {
       contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }] }],
       generationConfig: { temperature: 0, maxOutputTokens: 120 },
     });
-    // Coba beberapa model (nama model bisa beda per key/region → 404). Kalau 404
-    // lanjut ke model berikutnya; kalau 429 (kuota) berhenti = manual.
-    const models = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : [])
-      .concat(["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"]);
+    // Deteksi model yang DIDUKUNG key ini (hindari 404 nama model yang beda
+    // per key/region). Fallback ke daftar statis bila ListModels gagal.
+    let models = [];
+    try {
+      const lr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+      if (lr.ok) {
+        const lj = await lr.json();
+        models = (lj.models || [])
+          .filter((mm) => (mm.supportedGenerationMethods || []).includes("generateContent") && /flash/i.test(mm.name))
+          .map((mm) => mm.name.replace(/^models\//, ""))
+          .sort((a, b) => (/2\.|2-/.test(b) ? 1 : 0) - (/2\.|2-/.test(a) ? 1 : 0)); // utamakan flash 2.x
+      }
+    } catch {}
+    if (process.env.GEMINI_MODEL) models.unshift(process.env.GEMINI_MODEL);
+    if (!models.length) models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"];
     for (const model of models) {
       const gRes = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
