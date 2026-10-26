@@ -197,7 +197,7 @@ export default function KantinTV() {
       {/* Main */}
       <div style={S.main}>
         {/* Kolom kiri: Transaksi Hari Ini (atas) + Menu Favorit 1 baris (bawah) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0, minWidth: 0 }}>
           <div style={S.trxCard}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ ...S.h2, fontSize: 18 }}>TRANSAKSI HARI INI<div style={S.accent} /></div>
@@ -239,7 +239,7 @@ export default function KantinTV() {
 
           <div style={S.menuCard}>
             <div style={S.h2}>MENU FAVORIT<div style={S.accent} /></div>
-            <div style={{ overflow: "hidden", flex: 1, minHeight: 0, marginTop: 10 }}>
+            <div style={{ overflow: "hidden", flex: 1, minHeight: 0, minWidth: 0, marginTop: 10 }}>
               {menuLoop.length === 0 ? (
                 <div style={{ color: "#8A93A5", textAlign: "center", paddingTop: 20 }}>Belum ada menu tersedia.</div>
               ) : (
@@ -394,16 +394,16 @@ const S = {
   statusBadge: { marginTop: 3, display: "inline-block", color: "#fff", fontSize: 14, fontWeight: 800, padding: "2px 16px", borderRadius: 7 },
 
   main: { display: "grid", gridTemplateColumns: "1.9fr 1fr", gap: 12, flex: 1, minHeight: 0 },
-  menuCard: { background: "#fff", borderRadius: 14, padding: "14px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0, flex: "0 0 42%" },
+  menuCard: { background: "#fff", borderRadius: 14, padding: "14px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, flex: "0 0 42%" },
   h2: { fontSize: 20, fontWeight: 800 },
   accent: { width: 52, height: 4, background: ORANGE, borderRadius: 3, marginTop: 4 },
   menuGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 10, flex: 1, minHeight: 0 },
 
-  trxCard: { background: "#fff", borderRadius: 14, padding: "12px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0, flex: 1 },
+  trxCard: { background: "#fff", borderRadius: 14, padding: "12px 16px", color: NAVY, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, flex: 1 },
   trxChipOk: { display: "flex", alignItems: "center", gap: 5, background: "#E3F6E9", color: "#2E9E4F", fontSize: 13, fontWeight: 800, padding: "4px 11px", borderRadius: 8 },
   trxChipPend: { display: "flex", alignItems: "center", gap: 5, background: "#FBEEDB", color: "#C77D11", fontSize: 13, fontWeight: 800, padding: "4px 11px", borderRadius: 8 },
   trxCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 10, flex: 1, minHeight: 0 },
-  trxCol: { display: "flex", flexDirection: "column", minHeight: 0 },
+  trxCol: { display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 },
   trxColHead: { fontSize: 12, fontWeight: 700, color: "#5A6577", display: "flex", alignItems: "center", gap: 6, paddingBottom: 6, borderBottom: "2px solid #EEF1F6" },
   trxList: { overflow: "hidden", flex: 1, marginTop: 4 },
   trxRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "5px 0", borderBottom: "1px solid #F3F5F9" },
