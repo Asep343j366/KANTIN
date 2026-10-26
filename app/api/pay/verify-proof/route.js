@@ -48,10 +48,12 @@ export async function POST(request) {
     const b64 = buf.toString("base64");
 
     const prompt =
-      "Kamu memverifikasi bukti pembayaran (screenshot transfer / QRIS / e-wallet seperti DANA, GoPay, OVO, m-banking) untuk sebuah kantin. " +
+      "Kamu memverifikasi bukti pembayaran (screenshot transfer / QRIS / e-wallet / m-banking seperti DANA, GoPay, OVO, BCA, BRI, Mandiri) untuk sebuah kantin. " +
       "Lihat gambar dan tentukan: apakah ini bukti transaksi yang BERHASIL/SUKSES, dan berapa NOMINAL utama yang dibayarkan. " +
       'Jawab HANYA dengan JSON valid tanpa teks lain: {"is_proof":boolean,"success":boolean,"amount":number|null}. ' +
-      "amount = nominal rupiah sebagai angka bulat tanpa titik/koma (contoh 10001). Jika bukan bukti pembayaran atau tidak jelas, is_proof/success=false dan amount=null.";
+      "amount = nominal dalam RUPIAH PENUH sebagai angka bulat. PENTING: Rupiah TIDAK memakai sen, jadi ABAIKAN dua angka desimal di belakang titik/koma. " +
+      "Contoh: 'IDR 802.00' -> 802 ; 'Rp 1.500,00' -> 1500 ; 'Rp10.001' -> 10001 ; 'IDR 12,500.00' -> 12500. " +
+      "Jika bukan bukti pembayaran atau tidak jelas, is_proof/success=false dan amount=null.";
 
     const gRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
@@ -81,7 +83,11 @@ export async function POST(request) {
   if (!verdict) return Response.json({ status: "manual", reason });
 
   const detected = Number(verdict.amount);
-  const amountOk = Number.isFinite(detected) && expected > 0 && detected === expected;
+  // Cocok bila sama persis, ATAU terbaca dalam "sen" (mis. 802.00 -> 80200)
+  // yang jika dibagi 100 sama dengan nominal unik.
+  const amountOk =
+    Number.isFinite(detected) && expected > 0 &&
+    (detected === expected || Math.round(detected / 100) === expected);
   const valid = verdict.is_proof === true && verdict.success === true && amountOk;
 
   if (!valid) {
