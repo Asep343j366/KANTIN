@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { getMyStore } from "@/lib/store";
+import { getMyStore, clearStoreCache } from "@/lib/store";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
 
@@ -19,7 +19,10 @@ export default function AdminSettings() {
       if (!st?.store_id) { setS({}); return; }
       setStoreId(st.store_id);
       const { data } = await supabase.from("settings").select("*").eq("store_id", st.store_id).maybeSingle();
-      setS(data || {});
+      const seeded = data || {};
+      // Bila nama_kantin kosong, pakai nama dari stores agar tak menimpa dgn default saat simpan.
+      if (!seeded.nama_kantin && st.store?.nama) seeded.nama_kantin = st.store.nama;
+      setS(seeded);
       setPreview(data?.qris_image_url || null);
     })();
   }, []);
@@ -58,6 +61,14 @@ export default function AdminSettings() {
       };
       const { error } = await supabase.from("settings").upsert(payload, { onConflict: "store_id" });
       if (error) throw error;
+
+      // Sinkronkan nama ke tabel stores (dipakai sidebar admin, storefront, &
+      // Kantin TV) agar tidak beda dengan nama di Pengaturan.
+      const namaBaru = payload.nama_kantin;
+      const { error: errStore } = await supabase.from("stores").update({ nama: namaBaru }).eq("id", storeId);
+      if (errStore) throw errStore;
+      clearStoreCache(); // agar sidebar menampilkan nama terbaru
+
       setMsg("Tersimpan.");
     } catch (e) {
       setMsg("Gagal: " + (e.message || e));
