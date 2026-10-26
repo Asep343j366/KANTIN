@@ -51,6 +51,7 @@ export default function KantinTV() {
   const [orders, setOrders] = useState([]);
   const [settings, setSettings] = useState(null);
   const [qr, setQr] = useState(null);
+  const [url, setUrl] = useState("");
   const [now, setNow] = useState(new Date());
   const [qi, setQi] = useState(0);
   const [qVisible, setQVisible] = useState(true);
@@ -62,7 +63,7 @@ export default function KantinTV() {
     loadingRef.current = true;
     try {
       const since = new Date();
-      since.setHours(0, 0, 0, 0); // cukup hari ini untuk KPI gaya baru
+      since.setDate(1); since.setHours(0, 0, 0, 0); // awal bulan (untuk omzet bulan)
       const [{ data: prod }, { data: ord }, { data: set }] = await Promise.all([
         supabase.from("products").select("id, nama, harga, foto_url, stok, tersedia").eq("store_id", store.id),
         supabase.from("orders").select("id, total, created_at, status")
@@ -95,7 +96,9 @@ export default function KantinTV() {
   useEffect(() => {
     if (!store?.slug) return;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    QRCode.toDataURL(`${origin}/s/${store.slug}`, { width: 240, margin: 1, color: { dark: "#1B2E54", light: "#ffffff" } })
+    const link = `${origin}/s/${store.slug}`;
+    setUrl(link.replace(/^https?:\/\//, "")); // tampilkan tanpa https:// agar ringkas
+    QRCode.toDataURL(link, { width: 240, margin: 1, color: { dark: "#1B2E54", light: "#ffffff" } })
       .then(setQr).catch(() => {});
   }, [store?.slug]);
 
@@ -134,9 +137,12 @@ export default function KantinTV() {
 
   const m = useMemo(() => {
     const today = todayStr();
+    const month = today.slice(0, 7);
     const todays = orders.filter((o) => ymd(o.created_at) === today);
+    const months = orders.filter((o) => ymd(o.created_at).slice(0, 7) === month);
     return {
       omzetToday: todays.reduce((s, o) => s + Number(o.total || 0), 0),
+      omzetMonth: months.reduce((s, o) => s + Number(o.total || 0), 0),
       trxToday: todays.length,
       produkTersedia: avail.length,
     };
@@ -147,7 +153,6 @@ export default function KantinTV() {
     return custom.length ? custom : QUOTES;
   }, [settings]);
   const curQuote = quotes[qi % quotes.length];
-  const open = isOpen(settings?.jam_operasional);
   const siteName = (store?.nama || "KANTIN").toUpperCase();
 
   return (
@@ -178,13 +183,7 @@ export default function KantinTV() {
         <Kpi icon="ti-shopping-cart" label="Penjualan Hari Ini" value={`Rp ${fmt(m.omzetToday)}`} />
         <Kpi icon="ti-receipt" label="Transaksi" value={fmt(m.trxToday)} />
         <Kpi icon="ti-box" label="Produk Tersedia" value={fmt(m.produkTersedia)} />
-        <div style={S.kpiCard}>
-          <i className="ti ti-building-store" style={{ fontSize: 28, color: open ? "#2E9E4F" : "#C0392B" }} />
-          <div>
-            <div style={S.kpiLabel}>Status Kantin</div>
-            <div style={{ ...S.statusBadge, background: open ? "#2FA84F" : "#C0392B" }}>{open ? "BUKA" : "TUTUP"}</div>
-          </div>
-        </div>
+        <Kpi icon="ti-calendar-dollar" label="Omzet Bulan Ini" value={`Rp ${fmt(m.omzetMonth)}`} />
       </div>
 
       {/* Main */}
@@ -230,7 +229,8 @@ export default function KantinTV() {
               </div>
               <i className="ti ti-chevron-right" style={{ color: "#F26F21", fontSize: 22 }} />
             </div>
-            <div style={{ fontSize: 12, color: "#8A5A33" }}>Scan dengan ponsel pribadi untuk mulai belanja</div>
+            <div style={{ fontSize: 12, color: "#8A5A33" }}>Scan dengan ponsel pribadi, atau ketik:</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1B2E54", wordBreak: "break-all", lineHeight: 1.2 }}>{url}</div>
           </div>
         </div>
       </div>
