@@ -208,10 +208,11 @@ export default function CheckoutPage() {
         const why = {
           no_key: "verifikasi otomatis belum aktif",
           ai_quota: "kuota pembaca otomatis penuh",
+          ai_model_404: "model AI tak ditemukan",
           amount_mismatch: d.detected != null ? `nominal terbaca Rp${Number(d.detected).toLocaleString("id-ID")}, seharusnya Rp${Number(d.expected || 0).toLocaleString("id-ID")}` : "nominal tak cocok",
           not_valid_proof: "foto belum terbaca sebagai bukti berhasil",
           no_image: "foto tak terbaca",
-        }[d.reason] || "perlu dicek admin";
+        }[d.reason] || (String(d.reason || "").startsWith("ai_http_") ? `layanan AI bermasalah (${d.reason})` : "perlu dicek admin");
         setBuktiMsg(`Bukti sudah diterima (${why}). Pembayaran akan segera diverifikasi admin — kamu boleh menunggu di halaman ini.`);
       }
     } catch (err) {

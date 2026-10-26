@@ -55,26 +55,30 @@ export async function POST(request) {
       "Contoh: 'IDR 802.00' -> 802 ; 'Rp 1.500,00' -> 1500 ; 'Rp10.001' -> 10001 ; 'IDR 12,500.00' -> 12500. " +
       "Jika bukan bukti pembayaran atau tidak jelas, is_proof/success=false dan amount=null.";
 
-    const gRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }] }],
-          generationConfig: { temperature: 0, maxOutputTokens: 120 },
-        }),
+    const body = JSON.stringify({
+      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 120 },
+    });
+    // Coba beberapa model (nama model bisa beda per key/region → 404). Kalau 404
+    // lanjut ke model berikutnya; kalau 429 (kuota) berhenti = manual.
+    const models = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : [])
+      .concat(["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"]);
+    for (const model of models) {
+      const gRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body }
+      );
+      if (gRes.ok) {
+        const gJson = await gRes.json();
+        const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) verdict = JSON.parse(m[0]);
+        break;
       }
-    );
-
-    if (!gRes.ok) {
-      // 429 = kuota/rate limit free-tier habis → biarkan manual, jangan error.
-      reason = gRes.status === 429 ? "ai_quota" : "ai_http_" + gRes.status;
-    } else {
-      const gJson = await gRes.json();
-      const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const m = text.match(/\{[\s\S]*\}/);
-      if (m) verdict = JSON.parse(m[0]);
+      if (gRes.status === 429) { reason = "ai_quota"; break; }
+      if (gRes.status === 404) { reason = "ai_model_404"; continue; } // coba model lain
+      reason = "ai_http_" + gRes.status;
+      break;
     }
   } catch {
     verdict = null;
