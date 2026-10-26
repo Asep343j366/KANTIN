@@ -303,7 +303,7 @@ const S = {
   accent: { width: 52, height: 4, background: ORANGE, borderRadius: 3, marginTop: 4 },
   menuGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gridTemplateRows: "1fr 1fr", gap: 10, marginTop: 10, flex: 1, minHeight: 0 },
   prod: { border: "1px solid #EEF1F6", borderRadius: 11, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 },
-  prodImg: { flex: 1, minHeight: 0, background: "#F1F4F9", backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" },
+  prodImg: { flex: 1, minHeight: 0, background: "#fff", backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" },
   tersedia: { position: "absolute", top: 7, right: 7, background: "#E3F6E9", color: "#2E9E4F", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 3 },
   prodFoot: { padding: "7px 10px", background: "#fff" },
   prodName: { fontSize: 14, fontWeight: 700, color: NAVY, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
