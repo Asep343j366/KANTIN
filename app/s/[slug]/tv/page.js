@@ -227,8 +227,11 @@ export default function KantinTV() {
                   {m.pending.length === 0 && <div style={S.trxEmpty}>Tidak ada antrean.</div>}
                   {m.pending.slice(0, 8).map((o) => (
                     <div key={o.id} style={S.trxRow}>
-                      <span style={S.trxName}><i className="ti ti-user-clock" style={{ color: "#C77D11", fontSize: 14 }} /> {o.nama_pelanggan || "Pembeli"}</span>
-                      <span style={{ color: "#8A93A5", flex: "0 0 auto" }}>{new Date(o.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span style={S.trxName}>
+                        <i className="ti ti-user-clock" style={{ color: "#C77D11", fontSize: 14 }} /> {o.nama_pelanggan || "Pembeli"}
+                        <span style={{ color: "#9AA3B2", fontWeight: 400, fontSize: 11 }}>{new Date(o.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
+                      </span>
+                      <span style={{ color: "#C77D11", fontWeight: 700, flex: "0 0 auto" }}>Rp {fmt(o.total)}</span>
                     </div>
                   ))}
                 </div>
