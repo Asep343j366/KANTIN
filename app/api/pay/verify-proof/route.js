@@ -34,7 +34,7 @@ export async function POST(request) {
   const key = process.env.GEMINI_API_KEY;
 
   // Tanpa key atau tanpa url bukti → tak bisa auto-analisa → manual.
-  if (!key || !bukti_url) return Response.json({ status: "manual", reason: key ? "no_image" : "no_key" });
+  if (!key || !bukti_url) return Response.json({ status: "manual", reason: key ? "no_image" : "no_key", expected });
 
   // Analisa foto via Gemini. APA PUN yang gagal (kuota habis/429, error,
   // jaringan, respons tak bisa diparse) → jatuh ke verifikasi MANUAL, tidak
@@ -80,7 +80,7 @@ export async function POST(request) {
     verdict = null;
   }
 
-  if (!verdict) return Response.json({ status: "manual", reason });
+  if (!verdict) return Response.json({ status: "manual", reason, expected });
 
   const detected = Number(verdict.amount);
   // Cocok bila sama persis, ATAU terbaca dalam "sen" (mis. 802.00 -> 80200)
@@ -95,6 +95,7 @@ export async function POST(request) {
       status: "manual",
       reason: !amountOk ? "amount_mismatch" : "not_valid_proof",
       detected: Number.isFinite(detected) ? detected : null,
+      expected,
     });
   }
 

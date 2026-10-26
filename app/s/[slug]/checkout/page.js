@@ -205,7 +205,14 @@ export default function CheckoutPage() {
         setBuktiMsg("Pembayaran terverifikasi! Mengalihkan ke struk…");
         router.replace(storePath(slug, `/order/${kode}`));
       } else {
-        setBuktiMsg("Bukti sudah diterima. Pembayaran akan segera diverifikasi admin — kamu boleh menunggu di halaman ini.");
+        const why = {
+          no_key: "verifikasi otomatis belum aktif",
+          ai_quota: "kuota pembaca otomatis penuh",
+          amount_mismatch: d.detected != null ? `nominal terbaca Rp${Number(d.detected).toLocaleString("id-ID")}, seharusnya Rp${Number(d.expected || 0).toLocaleString("id-ID")}` : "nominal tak cocok",
+          not_valid_proof: "foto belum terbaca sebagai bukti berhasil",
+          no_image: "foto tak terbaca",
+        }[d.reason] || "perlu dicek admin";
+        setBuktiMsg(`Bukti sudah diterima (${why}). Pembayaran akan segera diverifikasi admin — kamu boleh menunggu di halaman ini.`);
       }
     } catch (err) {
       setBuktiErr("Gagal mengunggah bukti: " + (err.message || err));
