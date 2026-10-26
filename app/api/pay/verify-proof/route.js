@@ -41,6 +41,7 @@ export async function POST(request) {
   // pernah melempar error ke pelanggan.
   let verdict = null;
   let reason = "ai_error";
+  let detail = null;
   try {
     const imgRes = await fetch(bukti_url);
     const mime = imgRes.headers.get("content-type") || "image/jpeg";
@@ -89,13 +90,14 @@ export async function POST(request) {
       if (gRes.status === 429) { reason = "ai_quota"; break; }
       if (gRes.status === 404) { reason = "ai_model_404"; continue; } // coba model lain
       reason = "ai_http_" + gRes.status;
+      try { const et = await gRes.json(); detail = (et?.error?.message || JSON.stringify(et)).slice(0, 180); } catch {}
       break;
     }
   } catch {
     verdict = null;
   }
 
-  if (!verdict) return Response.json({ status: "manual", reason, expected });
+  if (!verdict) return Response.json({ status: "manual", reason, detail, expected });
 
   const detected = Number(verdict.amount);
   // Cocok bila sama persis, ATAU terbaca dalam "sen" (mis. 802.00 -> 80200)
