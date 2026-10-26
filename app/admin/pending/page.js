@@ -11,6 +11,8 @@ export default function PendingPage() {
   const [loading, setLoading] = useState(true);
   const [settlingId, setSettlingId] = useState(null);
   const [cancelingId, setCancelingId] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulk, setBulk] = useState(""); // teks progres saat aksi massal
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -84,6 +86,55 @@ export default function PendingPage() {
     load();
   }
 
+  // ---------- Aksi massal (banyak pesanan sekaligus) ----------
+  function toggle(id) {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  }
+  function toggleAll() {
+    setSelected((prev) => (prev.size === orders.length ? new Set() : new Set(orders.map((o) => o.id))));
+  }
+  const selectedOrders = orders.filter((o) => selected.has(o.id));
+  const selectedTotal = selectedOrders.reduce((s, o) => s + Number(o.amount_charged || o.total || 0), 0);
+
+  async function bulkRun(kind) {
+    if (!selectedOrders.length || bulk) return;
+    const isCancel = kind === "cancel";
+    const ok = await confirmDialog({
+      title: isCancel ? "Batalkan Terpilih" : "Tandai Lunas Terpilih",
+      message: isCancel
+        ? `Batalkan ${selectedOrders.length} pesanan terpilih?\n\nOrder akan hilang dari daftar ini. Gunakan untuk transaksi ganda / yang sudah dicatat manual.`
+        : `Tandai LUNAS ${selectedOrders.length} pesanan terpilih (total ${rupiah(selectedTotal)})?\n\nLakukan HANYA untuk pesanan yang pembayarannya benar-benar sudah masuk.`,
+      confirmLabel: isCancel ? "Ya, Batalkan Semua" : "Ya, Tandai Lunas Semua",
+      danger: isCancel,
+    });
+    if (!ok) return;
+
+    setErr(""); setMsg("");
+    const t = await token();
+    const url = isCancel ? "/api/admin/order-cancel" : "/api/admin/settle";
+    const ids = selectedOrders.map((o) => o.id);
+    let okc = 0, failc = 0;
+    for (let i = 0; i < ids.length; i++) {
+      setBulk(`Memproses ${i + 1}/${ids.length}…`);
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+          body: JSON.stringify({ order_id: ids[i] }),
+        });
+        res.ok ? okc++ : failc++;
+      } catch { failc++; }
+    }
+    setBulk("");
+    setSelected(new Set());
+    setMsg(`${isCancel ? "Dibatalkan" : "Ditandai lunas"}: ${okc} berhasil${failc ? `, ${failc} gagal` : ""}.`);
+    load();
+  }
+
   return (
     <div>
       <h1 className="mb-1 text-lg font-extrabold">Menunggu Pembayaran</h1>
@@ -98,15 +149,43 @@ export default function PendingPage() {
       {loading ? (
         <p className="text-ink-soft">Memuat...</p>
       ) : orders.length ? (
-        <div className="space-y-2">
+        <>
+          {/* Toolbar aksi massal */}
+          <div className="card mb-3 flex flex-wrap items-center justify-between gap-3 p-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" className="h-4 w-4 accent-primary"
+                checked={selected.size === orders.length && orders.length > 0}
+                ref={(el) => { if (el) el.indeterminate = selected.size > 0 && selected.size < orders.length; }}
+                onChange={toggleAll} />
+              Pilih semua ({orders.length})
+            </label>
+            {selected.size > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-ink-soft">{selected.size} dipilih · total <b className="text-primary">{rupiah(selectedTotal)}</b></span>
+                <Button variant="primary" loading={!!bulk} onClick={() => bulkRun("settle")} className="btn-xs">
+                  {bulk || `Tandai Lunas (${selected.size})`}
+                </Button>
+                <button onClick={() => bulkRun("cancel")} disabled={!!bulk}
+                  className="text-sm font-semibold text-danger disabled:opacity-50">
+                  Batalkan ({selected.size})
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
           {orders.map((o) => (
-            <div key={o.id} className="card flex flex-wrap items-center justify-between gap-3 p-3">
-              <div className="min-w-0">
+            <div key={o.id} className={`card flex flex-wrap items-center justify-between gap-3 p-3 ${selected.has(o.id) ? "ring-2 ring-primary/40" : ""}`}>
+              <div className="flex min-w-0 items-center gap-3">
+                <input type="checkbox" className="h-4 w-4 shrink-0 accent-primary"
+                  checked={selected.has(o.id)} onChange={() => toggle(o.id)} />
+                <div className="min-w-0">
                 <p className="font-semibold">
                   {o.nama_pelanggan} <span className="text-xs font-normal text-ink-soft">· {o.kode_pesanan}</span>
                 </p>
                 <p className="text-xs text-ink-soft">{fmtDateTime(o.created_at)} · {o.no_hp}</p>
                 <p className="text-xs text-ink-soft">Ref: {o.payment_ref || "—"}</p>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
@@ -133,7 +212,8 @@ export default function PendingPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       ) : (
         <p className="text-ink-soft">Tidak ada pesanan yang menunggu pembayaran.</p>
       )}
