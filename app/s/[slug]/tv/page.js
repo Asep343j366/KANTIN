@@ -327,7 +327,7 @@ const S = {
   live: { fontSize: 12, fontWeight: 700, color: "#A32D2D", background: "#F7C1C1", padding: "3px 11px", borderRadius: 999, display: "flex", alignItems: "center", gap: 6 },
   liveDot: { width: 7, height: 7, borderRadius: "50%", background: "#E24B4A", display: "inline-block" },
 
-  rowTop: { display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 12, flex: "0 0 auto", minHeight: 0 },
+  rowTop: { display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 12, flex: 1, minHeight: 0 },
   card: { ...CARD, padding: 14 },
   label: { fontSize: 12, color: "#76839B", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 },
   bigOmzet: { fontSize: 44, fontWeight: 800, color: "#0F6E56", lineHeight: 1 },
