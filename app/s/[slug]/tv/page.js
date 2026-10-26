@@ -152,15 +152,9 @@ export default function KantinTV() {
 
   return (
     <div style={S.screen}>
-      {/* Ornamen daun */}
-      <svg width="220" height="220" viewBox="0 0 100 100" style={{ position: "absolute", left: -20, bottom: 56, opacity: 0.06 }} aria-hidden="true">
-        <path d="M50 95 C20 70 20 30 50 10 C80 30 80 70 50 95 Z" fill="none" stroke="#fff" strokeWidth="3" />
-        <path d="M50 90 L50 20 M50 55 L25 40 M50 55 L75 40 M50 72 L30 60 M50 72 L70 60" stroke="#fff" strokeWidth="2" fill="none" />
-      </svg>
-      <svg width="220" height="220" viewBox="0 0 100 100" style={{ position: "absolute", right: -20, bottom: 56, opacity: 0.06, transform: "scaleX(-1)" }} aria-hidden="true">
-        <path d="M50 95 C20 70 20 30 50 10 C80 30 80 70 50 95 Z" fill="none" stroke="#fff" strokeWidth="3" />
-        <path d="M50 90 L50 20 M50 55 L25 40 M50 55 L75 40 M50 72 L30 60 M50 72 L70 60" stroke="#fff" strokeWidth="2" fill="none" />
-      </svg>
+      {/* Ornamen daun di sudut bawah */}
+      <Leaves style={{ left: -6, bottom: -10 }} />
+      <Leaves style={{ right: -6, bottom: -10, transform: "scaleX(-1)" }} />
 
       {/* Header */}
       <div style={S.header}>
@@ -243,12 +237,14 @@ export default function KantinTV() {
 
       {/* Footer — Papan Kejujuran */}
       <div style={S.footer}>
-        <i className="ti ti-heart-handshake" style={{ fontSize: 32, color: "#F26F21" }} />
+        <Spark />
+        <i className="ti ti-heart-handshake" style={{ fontSize: 34, color: "#F26F21" }} />
         <div style={{ textAlign: "center" }}>
           <div style={{ ...S.footQuote, opacity: qVisible ? 1 : 0 }}>{curQuote}</div>
           <div style={S.footSub}>Kantin kita, tanggung jawab bersama.</div>
         </div>
-        <i className="ti ti-users-group" style={{ fontSize: 32, color: "#9FB0CC" }} />
+        <i className="ti ti-users-group" style={{ fontSize: 34, color: "#9FB0CC" }} />
+        <Spark flip />
       </div>
     </div>
   );
@@ -273,6 +269,35 @@ function Step({ n, icon, text }) {
       <i className={`ti ${icon}`} style={{ fontSize: 19, color: "#5A6577" }} />
       <span style={{ fontSize: 14, fontWeight: 600 }}>{text}</span>
     </div>
+  );
+}
+
+// Ornamen daun (sprig) di sudut bawah layar — mengisi area navy kosong.
+function Leaves({ style }) {
+  return (
+    <svg width="300" height="150" viewBox="0 0 120 60" style={{ position: "absolute", opacity: 0.11, pointerEvents: "none", ...style }} aria-hidden="true">
+      <g fill="none" stroke="#9FE1CB" strokeWidth="1.6" strokeLinecap="round">
+        <path d="M8 60 C14 42 26 30 48 24" />
+        <path d="M20 42 C16 36 18 30 24 28 C28 33 27 40 20 42 Z" fill="#9FE1CB" fillOpacity="0.5" stroke="none" />
+        <path d="M30 34 C26 28 28 22 34 20 C38 25 37 32 30 34 Z" fill="#9FE1CB" fillOpacity="0.5" stroke="none" />
+        <path d="M41 28 C37 22 39 16 45 14 C49 19 48 26 41 28 Z" fill="#9FE1CB" fillOpacity="0.5" stroke="none" />
+        <path d="M4 60 C2 48 6 38 16 32" />
+        <path d="M12 46 C8 42 9 36 15 35 C18 39 17 45 12 46 Z" fill="#9FE1CB" fillOpacity="0.35" stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
+// Percikan garis oranye di sisi ikon footer (seperti referensi).
+function Spark({ flip }) {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: flip ? "scaleX(-1)" : "none", flex: "0 0 auto" }} aria-hidden="true">
+      <g stroke="#F26F21" strokeWidth="2.6" strokeLinecap="round">
+        <line x1="26" y1="8" x2="36" y2="4" />
+        <line x1="24" y1="20" x2="37" y2="20" />
+        <line x1="26" y1="32" x2="36" y2="36" />
+      </g>
+    </svg>
   );
 }
 
