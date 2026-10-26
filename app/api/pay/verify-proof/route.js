@@ -3,6 +3,10 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Cache antar-request (hemat kuota): daftar model & model yang terbukti jalan.
+let _models = null;
+let _goodModel = null;
+
 // Verifikasi bukti pembayaran yang DIUPLOAD pelanggan.
 //  - Simpan URL bukti ke order.
 //  - Bila GEMINI_API_KEY ada: analisa foto (apakah bukti pembayaran BERHASIL +
@@ -68,22 +72,33 @@ export async function POST(request) {
     const bad = /embedding|tts|image-generation|imagen|live|thinking|-exp/i;
     const rank = (n) =>
       /2\.0-flash\b/.test(n) ? 0 : /flash-latest/.test(n) ? 1 : /1\.5-flash\b/.test(n) ? 2 : /2\.5-flash\b/.test(n) ? 3 : 5;
-    let models = [];
-    try {
-      const lr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-      if (lr.ok) {
-        const lj = await lr.json();
-        models = (lj.models || [])
-          .filter((mm) => (mm.supportedGenerationMethods || []).includes("generateContent") && /flash/i.test(mm.name))
-          .map((mm) => mm.name.replace(/^models\//, ""))
-          .filter((n) => !bad.test(n))
-          .sort((a, b) => rank(a) - rank(b));
+    // HEMAT KUOTA: kalau sudah ada model yang terbukti jalan, pakai itu saja.
+    // Kalau belum, deteksi via ListModels (sekali, lalu di-cache).
+    let models;
+    if (_goodModel) {
+      models = [_goodModel];
+    } else {
+      if (!_models) {
+        let list = [];
+        try {
+          const lr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+          if (lr.ok) {
+            const lj = await lr.json();
+            list = (lj.models || [])
+              .filter((mm) => (mm.supportedGenerationMethods || []).includes("generateContent") && /flash/i.test(mm.name))
+              .map((mm) => mm.name.replace(/^models\//, ""))
+              .filter((n) => !bad.test(n))
+              .sort((a, b) => rank(a) - rank(b));
+          }
+        } catch {}
+        if (process.env.GEMINI_MODEL) list.unshift(process.env.GEMINI_MODEL);
+        if (!list.length) list = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"];
+        _models = list;
       }
-    } catch {}
-    if (process.env.GEMINI_MODEL) models.unshift(process.env.GEMINI_MODEL);
-    if (!models.length) models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"];
+      models = _models.slice(0, 3); // maksimal 3 percobaan model
+    }
 
-    // Coba tiap model; model yang 400/404/empty → lanjut ke model berikutnya.
+    // Coba tiap model; model yang 400/404/empty → lanjut; 429 (kuota) → berhenti.
     for (const model of models) {
       let gRes;
       try {
@@ -98,7 +113,7 @@ export async function POST(request) {
           const gJson = await gRes.json();
           const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text || "";
           const m = text.match(/\{[\s\S]*\}/);
-          if (m) { verdict = JSON.parse(m[0]); break; }
+          if (m) { verdict = JSON.parse(m[0]); _goodModel = model; break; }
           reason = "ai_empty"; detail = (text || JSON.stringify(gJson)).slice(0, 180);
           continue;
         } catch { reason = "ai_parse"; continue; }
