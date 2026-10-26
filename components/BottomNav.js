@@ -25,6 +25,8 @@ export default function BottomNav() {
   const slug = slugFromPath(pathname);
   // Hanya tampil di storefront sebuah store (/s/<slug>/...)
   if (!slug) return null;
+  // Sembunyikan di layar TV (dashboard publik layar penuh).
+  if (pathname.endsWith("/tv")) return null;
   const base = storePath(slug);
 
   return (

@@ -354,7 +354,7 @@ const S = {
   kpiValue: { fontSize: 20, fontWeight: 700 },
 
   rowBottom: { display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 12, flex: 1, minHeight: 0 },
-  menuCard: { position: "relative", width: 200, height: "100%", borderRadius: 12, overflow: "hidden", flex: "0 0 auto", backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "flex-end" },
+  menuCard: { position: "relative", height: "100%", aspectRatio: "4 / 5", maxWidth: 260, borderRadius: 12, overflow: "hidden", flex: "0 0 auto", backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "flex-end" },
   menuIcon: { position: "absolute", top: 10, right: 10, fontSize: 24, color: "rgba(255,255,255,.5)" },
   menuScrim: { width: "100%", background: "rgba(8,16,32,.66)", padding: "10px 12px", color: "#fff" },
   menuName: { fontSize: 16, fontWeight: 600, lineHeight: 1.2 },
