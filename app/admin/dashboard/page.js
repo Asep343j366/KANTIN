@@ -4,22 +4,23 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { rupiah } from "@/lib/format";
 import { computeDashboard } from "@/lib/reports";
+import { fetchAllRows } from "@/lib/sbPaginate";
 
 async function fetchAll() {
   const s = await getMyStore();
   if (!s?.store_id) return { orders: [], items: [], products: [], settings: null };
   const sid = s.store_id;
-  const [{ data: orders }, { data: items }, { data: products }, { data: cats }, { data: settings }] =
-    await Promise.all([
-      supabase.from("orders").select("id,kode_pesanan,total,created_at,status").eq("store_id", sid),
-      supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", sid),
-      supabase.from("products").select("id,nama,harga,hpp,stok,tersedia,category_id").eq("store_id", sid),
-      supabase.from("categories").select("id,nama").eq("store_id", sid),
-      supabase.from("settings").select("*").eq("store_id", sid).maybeSingle(),
-    ]);
-  const catMap = {}; (cats || []).forEach((c) => (catMap[c.id] = c.nama));
-  const prods = (products || []).map((p) => ({ ...p, categoryNama: catMap[p.category_id] || "Lainnya" }));
-  return { orders: orders || [], items: items || [], products: prods, settings };
+  // Paginasi: hindari batas 1000 baris agar transaksi hari ini/bulan ini tak terpotong.
+  const [orders, items, products, cats, { data: settings }] = await Promise.all([
+    fetchAllRows(() => supabase.from("orders").select("id,kode_pesanan,total,created_at,status").eq("store_id", sid).order("id", { ascending: true })),
+    fetchAllRows(() => supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", sid).order("id", { ascending: true })),
+    fetchAllRows(() => supabase.from("products").select("id,nama,harga,hpp,stok,tersedia,category_id").eq("store_id", sid).order("id", { ascending: true })),
+    fetchAllRows(() => supabase.from("categories").select("id,nama").eq("store_id", sid).order("id", { ascending: true })),
+    supabase.from("settings").select("*").eq("store_id", sid).maybeSingle(),
+  ]);
+  const catMap = {}; cats.forEach((c) => (catMap[c.id] = c.nama));
+  const prods = products.map((p) => ({ ...p, categoryNama: catMap[p.category_id] || "Lainnya" }));
+  return { orders, items, products: prods, settings };
 }
 
 export default function DashboardPage() {
