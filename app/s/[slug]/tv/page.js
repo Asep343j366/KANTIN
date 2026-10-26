@@ -43,8 +43,6 @@ function isOpen(jam) {
   return b >= a ? cur >= a && cur <= b : cur >= a || cur <= b; // lewat tengah malam
 }
 
-const PAGE = 3; // produk per halaman Menu Favorit (1 baris)
-
 export default function KantinTV() {
   const store = useStore();
   const [products, setProducts] = useState([]);
@@ -56,7 +54,6 @@ export default function KantinTV() {
   const [now, setNow] = useState(new Date());
   const [qi, setQi] = useState(0);
   const [qVisible, setQVisible] = useState(true);
-  const [page, setPage] = useState(0);
   const loadingRef = useRef(false);
 
   async function load() {
@@ -133,14 +130,9 @@ export default function KantinTV() {
   }, []);
 
   const avail = useMemo(() => products.filter((p) => p.tersedia && p.stok > 0), [products]);
-  const pageCount = Math.max(1, Math.ceil(avail.length / PAGE));
-  // Pergantian halaman Menu Favorit tiap 10 dtk bila produk > 6
-  useEffect(() => {
-    if (pageCount <= 1) { setPage(0); return; }
-    const t = setInterval(() => setPage((p) => (p + 1) % pageCount), 10000);
-    return () => clearInterval(t);
-  }, [pageCount]);
-  const shown = avail.slice(page * PAGE, page * PAGE + PAGE);
+  // Marquee menu: gandakan daftar agar loop mulus; makin banyak produk, makin lama.
+  const menuLoop = avail.length ? avail.concat(avail) : [];
+  const menuDur = Math.max(30, avail.length * 6);
 
   const m = useMemo(() => {
     const today = todayStr();
@@ -167,6 +159,12 @@ export default function KantinTV() {
 
   return (
     <div style={S.screen}>
+      <style>{`
+        @keyframes ktvX { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes ktvY { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+        .ktvX { display:flex; gap:10px; width:max-content; height:100%; animation: ktvX ${menuDur}s linear infinite; }
+      `}</style>
+
       {/* Ornamen daun di sudut bawah */}
       <Leaves style={{ left: -6, bottom: -10 }} />
       <Leaves style={{ right: -6, bottom: -10, transform: "scaleX(-1)" }} />
@@ -213,27 +211,27 @@ export default function KantinTV() {
                 <div style={S.trxColHead}><i className="ti ti-circle-check" style={{ color: "#2E9E4F" }} /> Sudah Bayar</div>
                 <div style={S.trxList}>
                   {m.sukses.length === 0 && <div style={S.trxEmpty}>Belum ada.</div>}
-                  {m.sukses.slice(0, 8).map((o) => (
-                    <div key={o.id} style={S.trxRow}>
+                  <VScroll items={m.sukses} renderRow={(o) => (
+                    <div style={S.trxRow}>
                       <span style={S.trxName}><i className="ti ti-user" style={{ color: "#2E9E4F", fontSize: 14 }} /> {o.nama_pelanggan || "Pembeli"}</span>
                       <span style={{ color: "#2E9E4F", fontWeight: 700, flex: "0 0 auto" }}>Rp {fmt(o.total)}</span>
                     </div>
-                  ))}
+                  )} />
                 </div>
               </div>
               <div style={S.trxCol}>
                 <div style={S.trxColHead}><i className="ti ti-clock" style={{ color: "#C77D11" }} /> Menunggu Verifikasi</div>
                 <div style={S.trxList}>
                   {m.pending.length === 0 && <div style={S.trxEmpty}>Tidak ada antrean.</div>}
-                  {m.pending.slice(0, 8).map((o) => (
-                    <div key={o.id} style={S.trxRow}>
+                  <VScroll items={m.pending} renderRow={(o) => (
+                    <div style={S.trxRow}>
                       <span style={S.trxName}>
                         <i className="ti ti-user-clock" style={{ color: "#C77D11", fontSize: 14 }} /> {o.nama_pelanggan || "Pembeli"}
                         <span style={{ color: "#9AA3B2", fontWeight: 400, fontSize: 11 }}>{new Date(o.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
                       </span>
                       <span style={{ color: "#C77D11", fontWeight: 700, flex: "0 0 auto" }}>Rp {fmt(o.total)}</span>
                     </div>
-                  ))}
+                  )} />
                 </div>
               </div>
             </div>
@@ -241,20 +239,25 @@ export default function KantinTV() {
 
           <div style={S.menuCard}>
             <div style={S.h2}>MENU FAVORIT<div style={S.accent} /></div>
-            <div style={S.menuGrid}>
-              {shown.length === 0 && <div style={{ color: "#8A93A5", gridColumn: "1/-1", alignSelf: "center", textAlign: "center" }}>Belum ada menu tersedia.</div>}
-              {shown.map((p) => (
-                <div key={p.id} style={S.prod}>
-                  <div style={{ ...S.prodImg, backgroundImage: p.foto_url ? `url(${p.foto_url})` : "none" }}>
-                    {!p.foto_url && <i className="ti ti-tools-kitchen-2" style={{ fontSize: 34, color: "#1B2E54", opacity: 0.4 }} />}
-                    <span style={S.tersedia}><i className="ti ti-circle-check" /> Tersedia</span>
-                  </div>
-                  <div style={S.prodFoot}>
-                    <div style={S.prodName}>{p.nama}</div>
-                    <div style={S.prodPrice}>Rp {fmt(p.harga)}</div>
-                  </div>
+            <div style={{ overflow: "hidden", flex: 1, minHeight: 0, marginTop: 10 }}>
+              {menuLoop.length === 0 ? (
+                <div style={{ color: "#8A93A5", textAlign: "center", paddingTop: 20 }}>Belum ada menu tersedia.</div>
+              ) : (
+                <div className="ktvX">
+                  {menuLoop.map((p, i) => (
+                    <div key={p.id + "-" + i} style={S.prodM}>
+                      <div style={{ ...S.prodImg, backgroundImage: p.foto_url ? `url(${p.foto_url})` : "none" }}>
+                        {!p.foto_url && <i className="ti ti-tools-kitchen-2" style={{ fontSize: 34, color: "#1B2E54", opacity: 0.4 }} />}
+                        <span style={S.tersedia}><i className="ti ti-circle-check" /> Tersedia</span>
+                      </div>
+                      <div style={S.prodFoot}>
+                        <div style={S.prodName}>{p.nama}</div>
+                        <div style={S.prodPrice}>Rp {fmt(p.harga)}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -319,6 +322,23 @@ function Step({ n, icon, text }) {
       <span style={S.stepNo}>{n}</span>
       <i className={`ti ${icon}`} style={{ fontSize: 19, color: "#5A6577" }} />
       <span style={{ fontSize: 14, fontWeight: 600 }}>{text}</span>
+    </div>
+  );
+}
+
+// Daftar yang auto-scroll ke atas terus-menerus bila melebihi tinggi kartu.
+// Bila jumlah item sedikit (<= threshold), tampil statis tanpa animasi.
+function VScroll({ items, renderRow, threshold = 6 }) {
+  if (!items.length) return null;
+  if (items.length <= threshold) {
+    return <div>{items.map((o, i) => <div key={o.id || i}>{renderRow(o)}</div>)}</div>;
+  }
+  const dur = Math.max(18, items.length * 3.5); // makin banyak makin lama (pelan)
+  const list = (p) => items.map((o, i) => <div key={p + (o.id || i)}>{renderRow(o)}</div>);
+  return (
+    <div style={{ animation: `ktvY ${dur}s linear infinite` }}>
+      {list("a-")}
+      {list("b-")}
     </div>
   );
 }
@@ -390,6 +410,7 @@ const S = {
   trxName: { display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 },
   trxEmpty: { fontSize: 12, color: "#9AA3B2", padding: "6px 0" },
   prod: { border: "1px solid #EEF1F6", borderRadius: 11, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 },
+  prodM: { width: 180, flex: "0 0 auto", height: "100%", border: "1px solid #EEF1F6", borderRadius: 11, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 },
   prodImg: { flex: 1, minHeight: 0, background: "#fff", backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" },
   tersedia: { position: "absolute", top: 7, right: 7, background: "#E3F6E9", color: "#2E9E4F", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 3 },
   prodFoot: { padding: "7px 10px", background: "#fff" },
