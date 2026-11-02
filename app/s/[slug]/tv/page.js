@@ -51,6 +51,10 @@ export default function KantinTV() {
   const [settings, setSettings] = useState(null);
   const [qr, setQr] = useState(null);
   const [url, setUrl] = useState("");
+  const [musik, setMusik] = useState([]);
+  const [needTapMusic, setNeedTapMusic] = useState(false);
+  const audioRef = useRef(null);
+  const idxRef = useRef(0);
   const [now, setNow] = useState(new Date());
   const [qi, setQi] = useState(0);
   const [qVisible, setQVisible] = useState(true);
@@ -63,7 +67,7 @@ export default function KantinTV() {
       const since = new Date();
       since.setDate(1); since.setHours(0, 0, 0, 0); // awal bulan (untuk omzet bulan)
       const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0); // awal hari ini
-      const [{ data: prod }, { data: ord }, { data: todays }, { data: set }] = await Promise.all([
+      const [{ data: prod }, { data: ord }, { data: todays }, { data: set }, { data: musikRows }] = await Promise.all([
         supabase.from("products").select("id, nama, harga, foto_url, stok, tersedia").eq("store_id", store.id),
         supabase.from("orders").select("id, total, created_at, status")
           .eq("store_id", store.id).eq("status", "selesai")
@@ -72,12 +76,14 @@ export default function KantinTV() {
         supabase.from("orders").select("id, nama_pelanggan, total, created_at, status")
           .eq("store_id", store.id).gte("created_at", dayStart.toISOString())
           .order("created_at", { ascending: false }),
-        supabase.from("settings").select("papan_kejujuran, jam_operasional").eq("store_id", store.id).maybeSingle(),
+        supabase.from("settings").select("papan_kejujuran, jam_operasional, musik_aktif, musik_volume").eq("store_id", store.id).maybeSingle(),
+        supabase.from("tv_musik").select("url, nama, urutan").eq("store_id", store.id).order("urutan"),
       ]);
       setProducts(prod || []);
       setOrders(ord || []);
       setTodayAll(todays || []);
       setSettings(set || null);
+      setMusik(musikRows || []);
     } finally {
       loadingRef.current = false;
     }
@@ -128,6 +134,36 @@ export default function KantinTV() {
     }, 6000);
     return () => clearInterval(t);
   }, []);
+
+  // ---- Musik latar: playlist loop, volume dari settings, unlock saat interaksi ----
+  const musikKey = musik.map((m) => m.url).join("|");
+  useEffect(() => {
+    const a = audioRef.current;
+    if (a) a.volume = Math.min(1, Math.max(0, (settings?.musik_volume ?? 55) / 100));
+  }, [settings?.musik_volume]);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const aktif = settings?.musik_aktif !== false;
+    if (!aktif || !musik.length) {
+      try { a.pause(); a.removeAttribute("src"); } catch {}
+      setNeedTapMusic(false);
+      return;
+    }
+    idxRef.current = idxRef.current % musik.length;
+    const playCur = () => {
+      a.src = musik[idxRef.current].url;
+      const p = a.play();
+      if (p && p.catch) p.catch(() => setNeedTapMusic(true));
+    };
+    a.onended = () => { idxRef.current = (idxRef.current + 1) % musik.length; playCur(); };
+    if (a.paused || !a.src) playCur();
+    const unlock = () => { const p = a.play(); if (p && p.then) p.then(() => setNeedTapMusic(false)).catch(() => {}); };
+    ["click", "touchstart", "keydown", "pointerdown"].forEach((ev) => document.addEventListener(ev, unlock));
+    return () => ["click", "touchstart", "keydown", "pointerdown"].forEach((ev) => document.removeEventListener(ev, unlock));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [musikKey, settings?.musik_aktif]);
 
   const avail = useMemo(() => products.filter((p) => p.tersedia && p.stok > 0), [products]);
   // Marquee menu: gandakan daftar agar loop mulus; makin banyak produk, makin lama.
@@ -301,6 +337,17 @@ export default function KantinTV() {
         <i className="ti ti-users-group" style={{ fontSize: 34, color: "#9FB0CC" }} />
         <Spark flip />
       </div>
+
+      {/* Musik latar */}
+      <audio ref={audioRef} />
+      {needTapMusic && (
+        <button
+          onClick={() => { const a = audioRef.current; if (a) a.play().then(() => setNeedTapMusic(false)).catch(() => {}); }}
+          style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, background: "#F26F21", color: "#fff", border: "none", borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+        >
+          <i className="ti ti-volume" /> Nyalakan musik
+        </button>
+      )}
     </div>
   );
 }

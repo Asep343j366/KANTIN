@@ -20,6 +20,7 @@ const icons = {
   area: "M3 12h4v8H3zM10 6h4v14h-4zM17 3h4v17h-4z",
   user: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M20 8v6M23 11h-6",
   setting: "M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.5 2h-5l-.3 2.9a7 7 0 00-1.7 1l-2.4-1-2 3.4L2.1 11a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.3 2.9h5l.3-2.9a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z",
+  musik: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z",
 };
 
 const links = [
@@ -31,6 +32,7 @@ const links = [
   { href: "/admin/reports", label: "Laporan", icon: "laporan" },
   { href: "/admin/journal", label: "Jurnal", icon: "jurnal" },
   { href: "/admin/payment", label: "Pembayaran", icon: "bayar" },
+  { href: "/admin/musik", label: "Musik TV", icon: "musik" },
   { href: "/admin/subscription", label: "Langganan", icon: "langganan" },
   { href: "/admin/stores", label: "Kelola Store", icon: "store", platformOnly: true },
   { href: "/admin/am", label: "Area Manager", icon: "area", platformOnly: true },
