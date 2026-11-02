@@ -55,6 +55,7 @@ export default function KantinTV() {
   const [needTapMusic, setNeedTapMusic] = useState(false);
   const audioRef = useRef(null);
   const idxRef = useRef(0);
+  const blobCacheRef = useRef({}); // url -> objectURL (download sekali, hemat egress)
   const [now, setNow] = useState(new Date());
   const [qi, setQi] = useState(0);
   const [qVisible, setQVisible] = useState(true);
@@ -152,16 +153,43 @@ export default function KantinTV() {
       return;
     }
     idxRef.current = idxRef.current % musik.length;
-    const playCur = () => {
-      a.src = musik[idxRef.current].url;
+    const cache = blobCacheRef.current;
+    let cancelled = false;
+
+    // Download tiap lagu SEKALI ke blob lalu putar dari blob — looping/replay
+    // tak mengunduh ulang (hemat egress), sama pola dengan Prime TV.
+    async function srcFor(url) {
+      if (cache[url]) return cache[url];
+      try {
+        const r = await fetch(url, { cache: "force-cache" });
+        if (!r.ok) throw 0;
+        const o = URL.createObjectURL(await r.blob());
+        cache[url] = o;
+        return o;
+      } catch { return url; }
+    }
+    async function playCur() {
+      const url = musik[idxRef.current]?.url;
+      if (!url) return;
+      const src = await srcFor(url);
+      if (cancelled) return;
+      try { a.src = src; } catch {}
       const p = a.play();
       if (p && p.catch) p.catch(() => setNeedTapMusic(true));
-    };
+    }
     a.onended = () => { idxRef.current = (idxRef.current + 1) % musik.length; playCur(); };
     if (a.paused || !a.src) playCur();
+
     const unlock = () => { const p = a.play(); if (p && p.then) p.then(() => setNeedTapMusic(false)).catch(() => {}); };
     ["click", "touchstart", "keydown", "pointerdown"].forEach((ev) => document.addEventListener(ev, unlock));
-    return () => ["click", "touchstart", "keydown", "pointerdown"].forEach((ev) => document.removeEventListener(ev, unlock));
+    return () => {
+      cancelled = true;
+      a.onended = null;
+      ["click", "touchstart", "keydown", "pointerdown"].forEach((ev) => document.removeEventListener(ev, unlock));
+      // Playlist berubah → lepaskan blob lama.
+      Object.values(cache).forEach((o) => { try { URL.revokeObjectURL(o); } catch {} });
+      blobCacheRef.current = {};
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [musikKey, settings?.musik_aktif]);
 
