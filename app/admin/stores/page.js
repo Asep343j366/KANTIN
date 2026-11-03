@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { fmtDateTime } from "@/lib/format";
+import { compressImage } from "@/lib/compressImage";
+import { fetchAllRows } from "@/lib/sbPaginate";
+import { confirmDialog } from "@/lib/confirmDialog";
 import Button from "@/components/Button";
 
 async function token() {
@@ -20,6 +23,42 @@ export default function StoresPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [resetFor, setResetFor] = useState(null);
+  const [optMsg, setOptMsg] = useState("");
+  const [optBusy, setOptBusy] = useState(false);
+
+  // Optimalkan foto produk SEMUA kantin (platform-admin): perkecil 640px +
+  // cache 1 tahun, timpa objek yang sama (bust CDN cache) → hemat cached egress.
+  // Bisa dijalankan J366 tanpa login ke toko lain (produk public-read; bucket
+  // products boleh ditulis user login).
+  async function reoptimizeAll() {
+    const prods = await fetchAllRows(() =>
+      supabase.from("products").select("id, foto_url").not("foto_url", "is", null).order("id", { ascending: true })
+    );
+    const withFoto = prods.filter((p) => p.foto_url && p.foto_url.includes("/products/"));
+    if (!withFoto.length) { setOptMsg("Tidak ada foto untuk dioptimalkan."); return; }
+    if (!(await confirmDialog({
+      title: "Optimalkan Foto Semua Kantin",
+      message: `Perkecil & cache ${withFoto.length} foto produk dari SEMUA kantin? Jalan sekali, aman (foto tetap sama, hanya lebih ringan). Bisa makan beberapa menit.`,
+      confirmLabel: "Ya, Optimalkan Semua",
+    }))) return;
+    setOptBusy(true);
+    let ok = 0, fail = 0;
+    for (let i = 0; i < withFoto.length; i++) {
+      const p = withFoto[i];
+      setOptMsg(`Mengoptimalkan ${i + 1}/${withFoto.length}… (${ok} ok)`);
+      try {
+        const path = p.foto_url.split("/products/")[1].split("?")[0];
+        const res = await fetch(p.foto_url, { cache: "no-store" });
+        const blob = await res.blob();
+        const small = await compressImage(new File([blob], "f.jpg", { type: blob.type || "image/jpeg" }), { maxWidth: 640, maxHeight: 640, quality: 0.6 });
+        const { error } = await supabase.storage.from("products").upload(path, small, { upsert: true, cacheControl: "31536000", contentType: "image/jpeg" });
+        if (error) throw error;
+        ok++;
+      } catch { fail++; }
+    }
+    setOptBusy(false);
+    setOptMsg(`Selesai: ${ok} foto dioptimalkan${fail ? `, ${fail} gagal` : ""}.`);
+  }
 
   useEffect(() => {
     getMyStore().then((s) => {
@@ -75,6 +114,18 @@ export default function StoresPage() {
 
       <LandingSettings />
 
+      {/* Optimasi egress: perkecil & cache foto produk semua kantin */}
+      <div className="card mb-4 p-4">
+        <h2 className="font-bold">⚡ Optimalkan Foto Semua Kantin</h2>
+        <p className="mb-3 text-xs text-ink-soft">
+          Perkecil &amp; cache foto produk SEMUA kantin sekaligus untuk memangkas cached egress Supabase.
+          Jalankan sekali (dan ulangi bila banyak foto baru). Foto tetap sama, hanya lebih ringan.
+        </p>
+        <button onClick={reoptimizeAll} disabled={optBusy} className="btn-outline text-sm disabled:opacity-60">
+          {optBusy ? (optMsg || "Memproses…") : "Optimalkan Sekarang"}
+        </button>
+        {!optBusy && optMsg && <p className="mt-2 text-sm text-success">{optMsg}</p>}
+      </div>
 
       {/* Form tambah */}
       <div className="card mb-4 space-y-3 p-4">
