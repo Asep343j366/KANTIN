@@ -31,7 +31,7 @@ export default function ProductCard({ product, demo }) {
         <div className="relative aspect-square bg-surface">
           {product.foto_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.foto_url} alt={product.nama}
+            <img src={product.foto_url} alt={product.nama} loading="lazy" decoding="async"
               className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-ink-soft">
