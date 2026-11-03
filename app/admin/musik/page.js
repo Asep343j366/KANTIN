@@ -56,7 +56,7 @@ export default function MusikTVPage() {
       }
       const path = `musik-${storeId}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("kantin-musik").upload(path, blob, {
-        upsert: true, contentType: ctype,
+        upsert: true, contentType: ctype, cacheControl: "31536000",
       });
       if (upErr) throw upErr;
       const url = supabase.storage.from("kantin-musik").getPublicUrl(path).data.publicUrl;

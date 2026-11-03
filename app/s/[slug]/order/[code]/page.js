@@ -98,7 +98,7 @@ export default function OrderStatus() {
     try {
       const up = await compressImage(f);
       const path = `bukti-${code}-${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from("payments").upload(path, up, { upsert: true });
+      const { error: upErr } = await supabase.storage.from("payments").upload(path, up, { upsert: true, cacheControl: "31536000", contentType: "image/jpeg" });
       if (upErr) throw upErr;
       const bukti_url = supabase.storage.from("payments").getPublicUrl(path).data.publicUrl;
       setBuktiMsg("Memeriksa bukti pembayaran…");

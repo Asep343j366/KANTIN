@@ -43,7 +43,7 @@ export default function AdminSettings() {
       if (file) {
         const up = await compressImage(file);
         const path = `qris-${Date.now()}.jpg`;
-        const { error } = await supabase.storage.from("qris").upload(path, up, { upsert: true });
+        const { error } = await supabase.storage.from("qris").upload(path, up, { upsert: true, cacheControl: "31536000", contentType: "image/jpeg" });
         if (error) throw error;
         qris_image_url = supabase.storage.from("qris").getPublicUrl(path).data.publicUrl;
       }

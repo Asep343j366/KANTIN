@@ -112,9 +112,9 @@ export default function JournalPage() {
     try {
       let foto_url = null;
       if (foto) {
-        const up = await compressImage(foto);
+        const up = await compressImage(foto, { maxWidth: 800, maxHeight: 800, quality: 0.6 });
         const path = `journal-${Date.now()}.jpg`;
-        const { error: upErr } = await supabase.storage.from("payments").upload(path, up);
+        const { error: upErr } = await supabase.storage.from("payments").upload(path, up, { cacheControl: "31536000", contentType: "image/jpeg" });
         if (upErr) throw upErr;
         foto_url = supabase.storage.from("payments").getPublicUrl(path).data.publicUrl;
       }

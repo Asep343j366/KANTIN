@@ -13,6 +13,8 @@ export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [optMsg, setOptMsg] = useState("");
+  const [optBusy, setOptBusy] = useState(false);
 
   async function load() {
     const s = await getMyStore();
@@ -25,6 +27,35 @@ export default function AdminProducts() {
     setCategories(c || []);
   }
   useEffect(() => { load(); }, []);
+
+  // Optimalkan ulang foto lama: perkecil (640px) + pasang cache 1 tahun →
+  // memangkas cached egress (foto lama masih 1280px & cache 1 jam).
+  async function reoptimize() {
+    const withFoto = products.filter((p) => p.foto_url && p.foto_url.includes("/products/"));
+    if (!withFoto.length) { setOptMsg("Tidak ada foto produk untuk dioptimalkan."); return; }
+    if (!(await confirmDialog({
+      title: "Optimalkan Ulang Foto",
+      message: `Perkecil & cache ${withFoto.length} foto produk agar hemat egress? Jalan sekali, aman (foto tetap sama, hanya lebih ringan).`,
+      confirmLabel: "Ya, Optimalkan",
+    }))) return;
+    setOptBusy(true);
+    let ok = 0, fail = 0;
+    for (let i = 0; i < withFoto.length; i++) {
+      const p = withFoto[i];
+      setOptMsg(`Mengoptimalkan ${i + 1}/${withFoto.length}…`);
+      try {
+        const path = p.foto_url.split("/products/")[1].split("?")[0];
+        const res = await fetch(p.foto_url, { cache: "no-store" });
+        const blob = await res.blob();
+        const small = await compressImage(new File([blob], "f.jpg", { type: blob.type || "image/jpeg" }), { maxWidth: 640, maxHeight: 640, quality: 0.6 });
+        const { error } = await supabase.storage.from("products").upload(path, small, { upsert: true, cacheControl: "31536000", contentType: "image/jpeg" });
+        if (error) throw error;
+        ok++;
+      } catch { fail++; }
+    }
+    setOptBusy(false);
+    setOptMsg(`Selesai: ${ok} foto dioptimalkan${fail ? `, ${fail} gagal` : ""}.`);
+  }
 
   async function del(id) {
     if (!(await confirmDialog({
@@ -39,9 +70,15 @@ export default function AdminProducts() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <h1 className="text-lg font-extrabold">Produk ({products.length})</h1>
         <button onClick={() => setEditing(empty)} className="btn-primary">+ Tambah</button>
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button onClick={reoptimize} disabled={optBusy} className="btn-outline text-xs disabled:opacity-60">
+          {optBusy ? (optMsg || "Memproses…") : "⚡ Optimalkan foto (hemat egress)"}
+        </button>
+        {!optBusy && optMsg && <span className="text-xs text-success">{optMsg}</span>}
       </div>
 
       <div className="space-y-3">
@@ -84,9 +121,11 @@ function ProductForm({ product, categories, onClose, onSaved }) {
     try {
       let foto_url = f.foto_url;
       if (file) {
-        const up = await compressImage(file);
+        // Foto produk tampil kecil (grid/TV) → 640px cukup; cache 1 tahun agar
+        // tak diunduh ulang (hemat cached egress Supabase).
+        const up = await compressImage(file, { maxWidth: 640, maxHeight: 640, quality: 0.6 });
         const path = `prod-${Date.now()}.jpg`;
-        const { error: e } = await supabase.storage.from("products").upload(path, up);
+        const { error: e } = await supabase.storage.from("products").upload(path, up, { cacheControl: "31536000", contentType: "image/jpeg" });
         if (e) throw e;
         foto_url = supabase.storage.from("products").getPublicUrl(path).data.publicUrl;
       }
