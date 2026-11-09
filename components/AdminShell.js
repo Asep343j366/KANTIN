@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore, clearStoreCache } from "@/lib/store";
+import { useBrand } from "@/lib/brand";
 import Button from "@/components/Button";
 
 const icons = {
@@ -97,6 +98,7 @@ export default function AdminShell({ children }) {
   const [email, setEmail] = useState("");
   const [store, setStore] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const brand = useBrand();
 
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
@@ -159,8 +161,8 @@ export default function AdminShell({ children }) {
           Logout
         </Button>
         <div className="mt-3 flex flex-col items-center leading-none">
-          <span className="text-sm font-extrabold text-ink">iKantin</span>
-          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+          <span className="text-sm font-extrabold text-ink">{brand.name}</span>
+          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
         </div>
       </div>
     </aside>

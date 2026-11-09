@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { useBrand } from "@/lib/brand";
 
 const DEFAULT_WA = "6281234567890";
-const waHref = (wa) =>
-  `https://wa.me/${wa || DEFAULT_WA}?text=${encodeURIComponent("Halo, saya mau berlangganan iKantin untuk toko saya.")}`;
+const waHref = (wa, appName) =>
+  `https://wa.me/${wa || DEFAULT_WA}?text=${encodeURIComponent(`Halo, saya mau berlangganan ${appName} untuk toko saya.`)}`;
 
 // Format harga dgn pemisah ribuan. Bila user isi angka ("50000" / "50.000") →
 // "Rp50.000". Bila teks bebas → tampilkan apa adanya.
@@ -27,6 +28,7 @@ export default function Landing() {
   const [demoSlug, setDemoSlug] = useState(null);
   const [plat, setPlat] = useState(null);
   const [mock, setMock] = useState([]);
+  const brand = useBrand();
 
   useEffect(() => {
     (async () => {
@@ -53,7 +55,7 @@ export default function Landing() {
     })();
   }, []);
 
-  const waLink = waHref(plat?.wa_number);
+  const waLink = waHref(plat?.wa_number, brand.name);
   const hargaLabel = formatHarga(plat?.harga_label);
   const hargaNote = plat?.harga_note || "Hubungi kami untuk harga & aktivasi.";
   const mockItems = (mock.length ? mock : FALLBACK_MENU).slice(0, 4);
@@ -69,8 +71,8 @@ export default function Landing() {
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[15px] font-extrabold tracking-tight">iKantin</span>
-              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+              <span className="text-[15px] font-extrabold tracking-tight">{brand.name}</span>
+              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
             </div>
           </div>
           <nav className="hidden items-center gap-7 text-sm font-semibold text-ink-soft md:flex">
@@ -218,11 +220,11 @@ export default function Landing() {
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-extrabold text-ink">iKantin</span>
-              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+              <span className="font-extrabold text-ink">{brand.name}</span>
+              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
             </div>
           </div>
-          <p>© {new Date().getFullYear()} iKantin — Digital Borneo. Semua hak dilindungi.</p>
+          <p>© {new Date().getFullYear()} {brand.name} — {brand.tagline}. Semua hak dilindungi.</p>
           <Link href="/admin" className="font-semibold text-primary">Masuk Admin</Link>
         </div>
       </footer>
@@ -249,6 +251,7 @@ function PhoneFrame({ children, className = "", width = 250 }) {
 
 // Dua HP berdampingan: belakang (setengah, layar QRIS) + depan (full, layar toko).
 function PhoneMockups({ items }) {
+  const brand = useBrand();
   const grid = Array.from({ length: 6 }, (_, i) => items[i % items.length] || {});
   return (
     <div className="relative mx-auto flex w-full max-w-[440px] items-center justify-center py-4">
@@ -290,7 +293,7 @@ function PhoneMockups({ items }) {
             </div>
             {/* header toko */}
             <div className="bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pb-4 pt-2 text-white">
-              <p className="text-[8px] font-semibold uppercase tracking-wide text-white/60">Kantin Digital</p>
+              <p className="text-[8px] font-semibold uppercase tracking-wide text-white/60">{brand.tagline}</p>
               <p className="text-[13px] font-extrabold leading-tight">Kantin Kejujuran Informa Bigmall</p>
               <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="text-white/70"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>

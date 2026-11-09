@@ -1,7 +1,7 @@
 {
   "id": "/admin",
-  "name": "Kantin Admin BMS",
-  "short_name": "Kantin Admin",
+  "name": "DKantin Admin",
+  "short_name": "DKantin Admin",
   "description": "Panel admin kantin: transaksi, produk, inventory, jurnal, laporan.",
   "start_url": "/admin",
   "scope": "/admin",

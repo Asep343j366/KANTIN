@@ -1,20 +1,25 @@
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import PWARegister from "@/components/PWARegister";
+import { getBrandServer } from "@/lib/brandServer";
 
-export const metadata = {
-  title: "Kantin Kejujuran BMS",
-  description: "Pesan makanan & minuman kantin, bayar QRIS, ambil di tempat.",
-  manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Kantin BMS" },
-  icons: {
-    icon: [
-      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
-  },
-};
+// Judul default memakai nama aplikasi dari platform_settings (default DKantin).
+export async function generateMetadata() {
+  const { name, tagline } = await getBrandServer();
+  return {
+    title: `${name} — ${tagline}`,
+    description: "Pesan makanan & minuman kantin, bayar QRIS, ambil di tempat.",
+    manifest: "/manifest.json",
+    appleWebApp: { capable: true, statusBarStyle: "default", title: name },
+    icons: {
+      icon: [
+        { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    },
+  };
+}
 
 export const viewport = {
   themeColor: "#0F4575",

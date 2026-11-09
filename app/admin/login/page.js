@@ -2,10 +2,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useBrand } from "@/lib/brand";
 import Button from "@/components/Button";
+import LoginSwitch from "@/components/LoginSwitch";
 
 export default function AdminLogin() {
   const router = useRouter();
+  const brand = useBrand();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,13 +26,14 @@ export default function AdminLogin() {
   return (
     <div className="grid min-h-screen place-items-center px-4">
       <div className="card w-full max-w-sm p-6">
+        <LoginSwitch active="admin" />
         <div className="mx-auto mb-3 grid h-20 w-20 place-items-center overflow-hidden rounded-2xl shadow-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
-        <h1 className="text-center text-xl font-extrabold text-primary">Admin iKantin</h1>
-        <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</p>
-        <p className="mt-1 text-center text-sm text-ink-soft">Big Mall Samarinda — kelola pesanan & produk.</p>
+        <h1 className="text-center text-xl font-extrabold text-primary">Admin {brand.name}</h1>
+        <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</p>
+        <p className="mt-1 text-center text-sm text-ink-soft">Kelola pesanan, produk & laporan kantin.</p>
         <form onSubmit={login} className="mt-5 space-y-3">
           <input className="input" type="email" placeholder="Email" value={email}
             onChange={(e) => setEmail(e.target.value)} required />

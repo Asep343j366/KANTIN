@@ -1,9 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useSlug, storePath } from "@/lib/slug";
+import { useBrand } from "@/lib/brand";
 
 export default function Header({ settings, storeName }) {
   const slug = useSlug();
+  const brand = useBrand();
   return (
     <header className="bg-gradient-to-br from-[#0F4575] to-[#0A2E4F] px-4 pb-5 pt-4 text-white">
       <div className="container-app flex items-center gap-3 px-0">
@@ -12,7 +14,7 @@ export default function Header({ settings, storeName }) {
           <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Kantin Digital</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">{brand.name} · {brand.tagline}</p>
           <h1 className="truncate text-lg font-extrabold leading-tight">
             {settings?.nama_kantin || storeName || "Kantin Digital"}
           </h1>

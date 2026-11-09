@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useBrand } from "@/lib/brand";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard" },
@@ -17,6 +18,7 @@ const links = [
 export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const brand = useBrand();
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/admin/login");
@@ -25,8 +27,8 @@ export default function AdminNav() {
     <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <div className="flex flex-col leading-none">
-          <span className="font-extrabold text-primary">Admin iKantin</span>
-          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Digital Borneo</span>
+          <span className="font-extrabold text-primary">Admin {brand.name}</span>
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
         </div>
         <button onClick={logout} className="text-sm font-semibold text-ink-soft">Keluar</button>
       </div>

@@ -1,9 +1,13 @@
 import AmGuard from "@/components/AmGuard";
+import { getBrandServer } from "@/lib/brandServer";
 
-export const metadata = {
-  title: "iKantin Area Manager",
-  description: "Dashboard controlling Area Manager: pantau seluruh store under-nya.",
-};
+export async function generateMetadata() {
+  const { name } = await getBrandServer();
+  return {
+    title: `${name} Area Manager`,
+    description: "Dashboard controlling Area Manager: pantau seluruh store under-nya.",
+  };
+}
 
 export const viewport = {
   themeColor: "#0F4575",

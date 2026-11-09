@@ -6,6 +6,7 @@ import { fmtDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/compressImage";
 import { fetchAllRows } from "@/lib/sbPaginate";
 import { confirmDialog } from "@/lib/confirmDialog";
+import { refreshBrand } from "@/lib/brand";
 import Button from "@/components/Button";
 
 async function token() {
@@ -263,7 +264,9 @@ function LandingSettings() {
     const j = await res.json();
     setSaving(false);
     if (!res.ok) return setErr(j.error || "Gagal menyimpan.");
-    setMsg("Pengaturan landing tersimpan.");
+    if (j.warning) setErr(j.warning);
+    setMsg("Pengaturan tersimpan.");
+    refreshBrand();
   }
 
   if (!s) return null;
@@ -271,7 +274,20 @@ function LandingSettings() {
   return (
     <div className="card mb-4 space-y-3 p-4">
       <h2 className="font-bold">Pengaturan Landing Page</h2>
-      <p className="-mt-1 text-xs text-ink-soft">Nomor WhatsApp & info harga yang tampil di halaman depan (landing).</p>
+      <p className="-mt-1 text-xs text-ink-soft">Nama aplikasi, nomor WhatsApp & info harga yang tampil di landing dan seluruh aplikasi.</p>
+
+      <div className="rounded-xl bg-surface p-3">
+        <p className="mb-2 text-xs font-bold">Nama Aplikasi</p>
+        <p className="-mt-1 mb-2 text-[11px] text-ink-soft">Tampil di landing, login, sidebar admin & AM, Kantin TV, judul tab, dan laporan PDF. Huruf pertama nama diberi warna aksen di Kantin TV.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Nama aplikasi">
+            <input className="input" maxLength={40} value={s.app_name ?? "DKantin"} onChange={(e) => set("app_name", e.target.value)} placeholder="DKantin" />
+          </F>
+          <F label="Keterangan / tagline">
+            <input className="input" maxLength={60} value={s.app_tagline ?? "Digital Kantin"} onChange={(e) => set("app_tagline", e.target.value)} placeholder="Digital Kantin" />
+          </F>
+        </div>
+      </div>
       <F label="Nomor WhatsApp (format 62xxx)">
         <input className="input" value={s.wa_number || ""} onChange={(e) => set("wa_number", e.target.value)} placeholder="628123456789" />
       </F>
@@ -298,7 +314,7 @@ function LandingSettings() {
       </div>
       {msg && <p className="text-sm text-success">{msg}</p>}
       {err && <p className="text-sm text-danger">{err}</p>}
-      <Button onClick={save} loading={saving} className="btn-block">Simpan Pengaturan Landing</Button>
+      <Button onClick={save} loading={saving} className="btn-block">Simpan Pengaturan</Button>
     </div>
   );
 }

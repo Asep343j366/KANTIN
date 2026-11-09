@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyAm, clearAmCache } from "@/lib/am";
+import { useBrand } from "@/lib/brand";
 import Button from "@/components/Button";
 
 const icons = {
@@ -28,6 +29,7 @@ export default function AmShell({ children }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [am, setAm] = useState(null);
+  const brand = useBrand();
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -75,8 +77,8 @@ export default function AmShell({ children }) {
           Logout
         </Button>
         <div className="mt-3 flex flex-col items-center leading-none">
-          <span className="text-sm font-extrabold text-ink">iKantin</span>
-          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">Area Control · Digital Borneo</span>
+          <span className="text-sm font-extrabold text-ink">{brand.name}</span>
+          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">Area Control · {brand.tagline}</span>
         </div>
       </div>
     </aside>

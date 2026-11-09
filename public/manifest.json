@@ -1,7 +1,7 @@
 {
   "id": "/?app=pembeli",
-  "name": "Kantin Kejujuran BMS — Pembeli",
-  "short_name": "Kantin BMS",
+  "name": "DKantin — Digital Kantin",
+  "short_name": "DKantin",
   "description": "Pesan makanan & minuman kantin, bayar QRIS, ambil di tempat.",
   "start_url": "/?app=pembeli",
   "scope": "/",

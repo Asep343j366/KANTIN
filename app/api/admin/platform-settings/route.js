@@ -50,7 +50,17 @@ export async function POST(request) {
     langganan_durasi_hari: Number.isFinite(durasi) && durasi > 0 ? durasi : 120,
     updated_at: new Date().toISOString(),
   };
-  const { error } = await admin().from("platform_settings").upsert(payload, { onConflict: "id" });
+  // Nama aplikasi (migration_v21). Hanya dikirim bila diisi; maks 40 karakter.
+  const appName = String(b.app_name || "").trim().slice(0, 40);
+  const appTagline = String(b.app_tagline || "").trim().slice(0, 60);
+  const withBrand = { ...payload, ...(appName ? { app_name: appName } : {}), ...(appTagline ? { app_tagline: appTagline } : {}) };
+
+  let { error } = await admin().from("platform_settings").upsert(withBrand, { onConflict: "id" });
+  // Kolom nama belum ada (migrasi v21 belum dijalankan) → simpan field lain saja.
+  if (error && /app_name|app_tagline/i.test(error.message)) {
+    ({ error } = await admin().from("platform_settings").upsert(payload, { onConflict: "id" }));
+    if (!error) return Response.json({ ok: true, warning: "Nama aplikasi belum tersimpan: jalankan migration_v21_app_brand.sql dulu." });
+  }
   if (error) return Response.json({ error: error.message }, { status: 400 });
   return Response.json({ ok: true });
 }

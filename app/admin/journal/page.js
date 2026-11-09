@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/compressImage";
+import { useBrand } from "@/lib/brand";
 import Button from "@/components/Button";
 
 const KATEGORI = {
@@ -272,6 +273,7 @@ export default function JournalPage() {
 
 // Laporan buku kas 1 bulan: ringkasan saldo + daftar transaksi + export PDF.
 function MonthStatement({ m, storeName, txs, onClose }) {
+  const brand = useBrand();
   function exportPdf() {
     const label = monthLabel(m.bulan);
     const barisTx = txs.map((t) => `
@@ -318,7 +320,7 @@ function MonthStatement({ m, storeName, txs, onClose }) {
       </tr></thead><tbody>
         ${barisTx || `<tr><td colspan="7" style="text-align:center;padding:20px;color:#94A3B8">Tidak ada transaksi.</td></tr>`}
       </tbody></table>
-      <div class="foot">iKantin — Digital Borneo · Laporan dihasilkan otomatis.</div>
+      <div class="foot">${escapeHtml(brand.name)} — ${escapeHtml(brand.tagline)} · Laporan dihasilkan otomatis.</div>
       </body></html>`;
 
     const w = window.open("", "_blank");
