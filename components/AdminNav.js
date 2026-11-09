@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useBrand } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard" },
@@ -27,8 +28,8 @@ export default function AdminNav() {
     <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <div className="flex flex-col leading-none">
-          <span className="font-extrabold text-primary">Admin {brand.name}</span>
-          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
+          <span className="inline-flex items-baseline gap-1 font-extrabold text-primary">Admin <BrandLogo brand={brand} /></span>
+          {brand.style.showTagline && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>}
         </div>
         <button onClick={logout} className="text-sm font-semibold text-ink-soft">Keluar</button>
       </div>

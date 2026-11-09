@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useBrand } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 import Button from "@/components/Button";
 
 export default function RegisterPage() {
@@ -44,8 +45,8 @@ export default function RegisterPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
           </div>
-          <h1 className="mt-3 text-xl font-extrabold text-primary">Daftar {brand.name}</h1>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</p>
+          <h1 className="mt-3 flex items-baseline justify-center gap-1.5 text-xl font-extrabold text-primary">Daftar <BrandLogo brand={brand} /></h1>
+          {brand.style.showTagline && <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</p>}
           <p className="mt-1 text-center text-sm text-ink-soft">Gratis coba 7 hari. Tanpa kartu kredit.</p>
         </div>
 

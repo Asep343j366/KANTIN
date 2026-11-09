@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore, clearStoreCache } from "@/lib/store";
 import { useBrand } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 import Button from "@/components/Button";
 
 const icons = {
@@ -161,8 +162,8 @@ export default function AdminShell({ children }) {
           Logout
         </Button>
         <div className="mt-3 flex flex-col items-center leading-none">
-          <span className="text-sm font-extrabold text-ink">{brand.name}</span>
-          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
+          <BrandLogo brand={brand} className="text-sm text-ink" />
+          {brand.style.showTagline && <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>}
         </div>
       </div>
     </aside>

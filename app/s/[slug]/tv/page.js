@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
 import { useStore } from "../StoreProvider";
 import { useBrand } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 
 // ===================== Kantin TV (e-KANTIN) =====================
 // Dashboard publik per-kantin untuk layar TV. Gaya navy: header brand,
@@ -238,7 +239,7 @@ export default function KantinTV() {
       {/* Header */}
       <div style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={S.brand}><span style={{ color: "#F26F21" }}>{brand.name.slice(0, 1)}</span>{brand.name.slice(1)}</div>
+          <div style={S.brand}><BrandLogo brand={brand} /></div>
           <div style={{ width: 2, height: 30, background: "rgba(255,255,255,.3)" }} />
           <div style={S.site}>{siteName}</div>
         </div>

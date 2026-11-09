@@ -6,6 +6,7 @@ import { getMyAm, clearAmCache } from "@/lib/am";
 import { useBrand } from "@/lib/brand";
 import Button from "@/components/Button";
 import LoginSwitch from "@/components/LoginSwitch";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function AmLogin() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function AmLogin() {
           <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <h1 className="text-center text-xl font-extrabold text-primary">Area Manager</h1>
-        <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{brand.name} · Controlling</p>
+        <p className="flex items-baseline justify-center gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-ink-soft"><BrandLogo brand={brand} /> · Controlling</p>
         <p className="mt-1 text-center text-sm text-ink-soft">Pantau seluruh store di area Anda.</p>
         <form onSubmit={login} className="mt-5 space-y-3">
           <input className="input" type="email" placeholder="Email" value={email}

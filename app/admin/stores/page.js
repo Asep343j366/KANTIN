@@ -7,6 +7,8 @@ import { compressImage } from "@/lib/compressImage";
 import { fetchAllRows } from "@/lib/sbPaginate";
 import { confirmDialog } from "@/lib/confirmDialog";
 import { refreshBrand } from "@/lib/brand";
+import { normalizeBrand, DEFAULT_STYLE } from "@/lib/brandDefaults";
+import BrandLogo from "@/components/BrandLogo";
 import Button from "@/components/Button";
 
 async function token() {
@@ -271,21 +273,109 @@ function LandingSettings() {
 
   if (!s) return null;
 
+  // Pratinjau logo dari isian form (disaring sama seperti saat disimpan).
+  const preview = normalizeBrand({ app_name: s.app_name ?? "DKantin", app_tagline: s.app_tagline ?? "Digital Kantin", app_brand_style: s.app_brand_style });
+  const st = preview.style;
+  const setStyle = (k, v) => set("app_brand_style", { ...st, [k]: v });
+
   return (
     <div className="card mb-4 space-y-3 p-4">
       <h2 className="font-bold">Pengaturan Landing Page</h2>
       <p className="-mt-1 text-xs text-ink-soft">Nama aplikasi, nomor WhatsApp & info harga yang tampil di landing dan seluruh aplikasi.</p>
 
-      <div className="rounded-xl bg-surface p-3">
-        <p className="mb-2 text-xs font-bold">Nama Aplikasi</p>
-        <p className="-mt-1 mb-2 text-[11px] text-ink-soft">Tampil di landing, login, sidebar admin & AM, Kantin TV, judul tab, dan laporan PDF. Huruf pertama nama diberi warna aksen di Kantin TV.</p>
+      <div className="space-y-3 rounded-xl bg-surface p-3">
+        <div>
+          <p className="text-xs font-bold">Nama &amp; Desain Logo Aplikasi</p>
+          <p className="text-[11px] text-ink-soft">Tampil di landing, login, sidebar admin &amp; AM, header toko, Kantin TV, judul tab, dan laporan PDF.</p>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <F label="Nama aplikasi">
-            <input className="input" maxLength={40} value={s.app_name ?? "DKantin"} onChange={(e) => set("app_name", e.target.value)} placeholder="DKantin" />
+            <input id="brand-name" className="input" maxLength={40} value={s.app_name ?? "DKantin"} onChange={(e) => set("app_name", e.target.value)} placeholder="DKantin" />
           </F>
           <F label="Keterangan / tagline">
-            <input className="input" maxLength={60} value={s.app_tagline ?? "Digital Kantin"} onChange={(e) => set("app_tagline", e.target.value)} placeholder="Digital Kantin" />
+            <input id="brand-tagline" className="input" maxLength={60} value={s.app_tagline ?? "Digital Kantin"} onChange={(e) => set("app_tagline", e.target.value)} placeholder="Digital Kantin" />
           </F>
+        </div>
+
+        {/* Pratinjau di latar terang & gelap */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid min-h-[84px] place-items-center rounded-xl border border-gray-100 bg-white p-3 text-center text-ink">
+            <div>
+              <BrandLogo brand={preview} style={{ fontSize: 28 }} />
+              {st.showTagline && <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{preview.tagline}</p>}
+            </div>
+          </div>
+          <div className="grid min-h-[84px] place-items-center rounded-xl bg-[#1B2E54] p-3 text-center text-white">
+            <div>
+              <BrandLogo brand={preview} style={{ fontSize: 28 }} />
+              {st.showTagline && <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">{preview.tagline}</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Huruf depan beraksen">
+            <select id="brand-accent-count" className="input" value={st.accentCount} onChange={(e) => setStyle("accentCount", Number(e.target.value))}>
+              <option value={0}>Tanpa aksen (polos)</option>
+              <option value={1}>1 huruf ({(preview.name || "D").slice(0, 1)})</option>
+              <option value={2}>2 huruf ({(preview.name || "DK").slice(0, 2)})</option>
+              <option value={3}>3 huruf ({(preview.name || "DKa").slice(0, 3)})</option>
+            </select>
+          </F>
+          <F label="Gaya aksen">
+            <select id="brand-accent-style" className="input" value={st.accentStyle} disabled={st.accentCount === 0} onChange={(e) => setStyle("accentStyle", e.target.value)}>
+              <option value="plain">Warna saja</option>
+              <option value="box">Dalam kotak</option>
+              <option value="circle">Dalam bulatan</option>
+              <option value="underline">Garis bawah</option>
+            </select>
+          </F>
+          <F label="Warna aksen">
+            <input id="brand-accent-color" type="color" className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white p-1" value={st.accentColor} disabled={st.accentCount === 0} onChange={(e) => setStyle("accentColor", e.target.value)} />
+          </F>
+          <F label={`Ukuran aksen (×${st.accentScale.toFixed(2)})`}>
+            <input id="brand-accent-scale" type="range" min="0.8" max="2" step="0.05" className="w-full accent-primary" value={st.accentScale} disabled={st.accentCount === 0} onChange={(e) => setStyle("accentScale", Number(e.target.value))} />
+          </F>
+          {(st.accentStyle === "box" || st.accentStyle === "circle") && st.accentCount > 0 && (
+            <F label="Warna huruf di kotak/bulatan">
+              <input id="brand-accent-text" type="color" className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white p-1" value={st.accentTextColor} onChange={(e) => setStyle("accentTextColor", e.target.value)} />
+            </F>
+          )}
+          <F label="Warna teks utama">
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs font-semibold">
+                <input id="brand-text-auto" type="checkbox" className="h-4 w-4 accent-primary" checked={!st.textColor} onChange={(e) => setStyle("textColor", e.target.checked ? "" : "#14213D")} />
+                Ikuti latar
+              </label>
+              {st.textColor && (
+                <input id="brand-text-color" type="color" className="h-10 flex-1 cursor-pointer rounded-lg border border-gray-200 bg-white p-1" value={st.textColor} onChange={(e) => setStyle("textColor", e.target.value)} />
+              )}
+            </div>
+          </F>
+          <F label="Ketebalan huruf">
+            <select id="brand-weight" className="input" value={st.weight} onChange={(e) => setStyle("weight", Number(e.target.value))}>
+              <option value={500}>Normal</option>
+              <option value={600}>Agak tebal</option>
+              <option value={700}>Tebal</option>
+              <option value={800}>Sangat tebal</option>
+            </select>
+          </F>
+          <F label={`Jarak huruf (${st.tracking.toFixed(2)}em)`}>
+            <input id="brand-tracking" type="range" min="-0.08" max="0.3" step="0.01" className="w-full accent-primary" value={st.tracking} onChange={(e) => setStyle("tracking", Number(e.target.value))} />
+          </F>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input id="brand-upper" type="checkbox" className="h-4 w-4 accent-primary" checked={st.uppercase} onChange={(e) => setStyle("uppercase", e.target.checked)} />
+            Huruf kapital semua
+          </label>
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input id="brand-show-tagline" type="checkbox" className="h-4 w-4 accent-primary" checked={st.showTagline} onChange={(e) => setStyle("showTagline", e.target.checked)} />
+            Tampilkan tagline
+          </label>
+          <button type="button" className="text-sm font-semibold text-primary" onClick={() => set("app_brand_style", { ...DEFAULT_STYLE })}>
+            Kembalikan gaya default
+          </button>
         </div>
       </div>
       <F label="Nomor WhatsApp (format 62xxx)">

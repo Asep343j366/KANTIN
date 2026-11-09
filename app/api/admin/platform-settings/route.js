@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { sanitizeStyle } from "@/lib/brandDefaults";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +55,21 @@ export async function POST(request) {
   const appName = String(b.app_name || "").trim().slice(0, 40);
   const appTagline = String(b.app_tagline || "").trim().slice(0, 60);
   const withBrand = { ...payload, ...(appName ? { app_name: appName } : {}), ...(appTagline ? { app_tagline: appTagline } : {}) };
+  // Gaya logo (migration_v22), disaring agar nilai aneh tak tersimpan.
+  const withStyle = b.app_brand_style ? { ...withBrand, app_brand_style: sanitizeStyle(b.app_brand_style) } : withBrand;
 
-  let { error } = await admin().from("platform_settings").upsert(withBrand, { onConflict: "id" });
-  // Kolom nama belum ada (migrasi v21 belum dijalankan) → simpan field lain saja.
+  const db = admin();
+  let { error } = await db.from("platform_settings").upsert(withStyle, { onConflict: "id" });
+  let warning = null;
+  // Kolom belum ada (migrasi belum dijalankan) → mundur bertahap, field lain tetap tersimpan.
+  if (error && /app_brand_style/i.test(error.message)) {
+    ({ error } = await db.from("platform_settings").upsert(withBrand, { onConflict: "id" }));
+    warning = "Gaya logo belum tersimpan: jalankan migration_v22_brand_style.sql dulu.";
+  }
   if (error && /app_name|app_tagline/i.test(error.message)) {
-    ({ error } = await admin().from("platform_settings").upsert(payload, { onConflict: "id" }));
-    if (!error) return Response.json({ ok: true, warning: "Nama aplikasi belum tersimpan: jalankan migration_v21_app_brand.sql dulu." });
+    ({ error } = await db.from("platform_settings").upsert(payload, { onConflict: "id" }));
+    warning = "Nama & gaya aplikasi belum tersimpan: jalankan migration_v21_app_brand.sql dan migration_v22_brand_style.sql dulu.";
   }
   if (error) return Response.json({ error: error.message }, { status: 400 });
-  return Response.json({ ok: true });
+  return Response.json(warning ? { ok: true, warning } : { ok: true });
 }

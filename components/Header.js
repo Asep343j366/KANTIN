@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useSlug, storePath } from "@/lib/slug";
 import { useBrand } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function Header({ settings, storeName }) {
   const slug = useSlug();
@@ -14,7 +15,10 @@ export default function Header({ settings, storeName }) {
           <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">{brand.name} · {brand.tagline}</p>
+          <p className="flex items-baseline gap-1 text-[12px] font-semibold uppercase tracking-wide text-white/80">
+            <BrandLogo brand={brand} />
+            {brand.style.showTagline && <span className="text-[10px] text-white/60">· {brand.tagline}</span>}
+          </p>
           <h1 className="truncate text-lg font-extrabold leading-tight">
             {settings?.nama_kantin || storeName || "Kantin Digital"}
           </h1>

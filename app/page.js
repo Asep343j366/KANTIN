@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { useBrand } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 
 const DEFAULT_WA = "6281234567890";
 const waHref = (wa, appName) =>
@@ -71,8 +72,8 @@ export default function Landing() {
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[15px] font-extrabold tracking-tight">{brand.name}</span>
-              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
+              <BrandLogo brand={brand} className="text-[17px]" />
+              {brand.style.showTagline && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>}
             </div>
           </div>
           <nav className="hidden items-center gap-7 text-sm font-semibold text-ink-soft md:flex">
@@ -220,8 +221,8 @@ export default function Landing() {
               <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-extrabold text-ink">{brand.name}</span>
-              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>
+              <BrandLogo brand={brand} className="text-ink" />
+              {brand.style.showTagline && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</span>}
             </div>
           </div>
           <p>© {new Date().getFullYear()} {brand.name} — {brand.tagline}. Semua hak dilindungi.</p>
