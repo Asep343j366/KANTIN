@@ -39,7 +39,8 @@ export default function StoreDashboardPage() {
       setLoading(true);
       const d = await loadStoreData(sid);
       const { data: jr } = await supabase
-        .from("journal").select("*").eq("store_id", sid).order("created_at", { ascending: false });
+        .from("journal").select("*").eq("store_id", sid).order("created_at", { ascending: false })
+        .limit(30); // ditampilkan hanya 30 terbaru; saldo kas dihitung dari loadStoreData (paginasi)
       setRaw(d);
       setJournal(jr || []);
       setLoading(false);

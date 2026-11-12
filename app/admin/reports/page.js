@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { rupiah } from "@/lib/format";
 import { computeReport } from "@/lib/reports";
+import { fetchAllRows } from "@/lib/sbPaginate";
 
 const PAGE_SIZE = 10;
 const palette = ["#1B6FEB", "#22C55E", "#F59E0B", "#EF4444", "#A855F7", "#14B8A6", "#EC4899", "#6366F1"];
@@ -33,15 +34,17 @@ export default function ReportsPage() {
       const s = await getMyStore();
       if (!s?.store_id) { setRaw({ orders: [], items: [], products: [], cats: [] }); return; }
       const sid = s.store_id;
-      const [{ data: orders }, { data: items }, { data: products }, { data: cats }] = await Promise.all([
-        supabase.from("orders").select("id,kode_pesanan,total,created_at,status").eq("store_id", sid),
-        supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", sid),
-        supabase.from("products").select("id,nama,harga,stok,tersedia,category_id").eq("store_id", sid),
-        supabase.from("categories").select("id,nama").eq("store_id", sid),
+      // Paginasi: analisa (fast/slow moving, dead stock, tren) butuh SELURUH riwayat,
+      // bukan 1000 baris pertama.
+      const [orders, items, products, cats] = await Promise.all([
+        fetchAllRows(() => supabase.from("orders").select("id,kode_pesanan,total,created_at,status").eq("store_id", sid).order("id", { ascending: true })),
+        fetchAllRows(() => supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", sid).order("id", { ascending: true })),
+        fetchAllRows(() => supabase.from("products").select("id,nama,harga,stok,tersedia,category_id").eq("store_id", sid).order("id", { ascending: true })),
+        fetchAllRows(() => supabase.from("categories").select("id,nama").eq("store_id", sid).order("id", { ascending: true })),
       ]);
-      const catMap = {}; (cats || []).forEach((c) => (catMap[c.id] = c.nama));
-      const prods = (products || []).map((p) => ({ ...p, categoryNama: catMap[p.category_id] || "Lainnya" }));
-      setRaw({ orders: orders || [], items: items || [], products: prods, cats: cats || [] });
+      const catMap = {}; cats.forEach((c) => (catMap[c.id] = c.nama));
+      const prods = products.map((p) => ({ ...p, categoryNama: catMap[p.category_id] || "Lainnya" }));
+      setRaw({ orders, items, products: prods, cats });
     })();
   }, []);
 

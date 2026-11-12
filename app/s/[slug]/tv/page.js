@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchAllRows } from "@/lib/sbPaginate";
 import { useStore } from "../StoreProvider";
 import { useBrand } from "@/lib/brand";
 import BrandLogo from "@/components/BrandLogo";
@@ -71,11 +72,12 @@ export default function KantinTV() {
       const since = new Date();
       since.setDate(1); since.setHours(0, 0, 0, 0); // awal bulan (untuk omzet bulan)
       const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0); // awal hari ini
-      const [{ data: prod }, { data: ord }, { data: todays }, { data: set }, { data: musikRows }] = await Promise.all([
+      const [{ data: prod }, ord, { data: todays }, { data: set }, { data: musikRows }] = await Promise.all([
         supabase.from("products").select("id, nama, harga, foto_url, stok, tersedia").eq("store_id", store.id),
-        supabase.from("orders").select("id, total, created_at, status")
+        // Paginasi: kantin ramai bisa >1000 transaksi/bulan → omzet bulan terpotong.
+        fetchAllRows(() => supabase.from("orders").select("id, total, created_at, status")
           .eq("store_id", store.id).eq("status", "selesai")
-          .gte("created_at", since.toISOString()),
+          .gte("created_at", since.toISOString()).order("id", { ascending: true })),
         // Hari ini SEMUA status → untuk kartu Transaksi (sukses & pending).
         supabase.from("orders").select("id, nama_pelanggan, total, created_at, status")
           .eq("store_id", store.id).gte("created_at", dayStart.toISOString())

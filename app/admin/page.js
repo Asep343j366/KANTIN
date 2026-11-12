@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import { fetchAllRows } from "@/lib/sbPaginate";
 
 export default function AdminTransaksi() {
   const [orders, setOrders] = useState([]);
@@ -17,12 +18,14 @@ export default function AdminTransaksi() {
   async function load() {
     const s = await getMyStore();
     if (!s?.store_id) { setOrders([]); setItems([]); setProducts([]); return; }
-    const [{ data: o }, { data: it }, { data: p }] = await Promise.all([
-      supabase.from("orders").select("*").eq("store_id", s.store_id).eq("status", "selesai").order("created_at", { ascending: false }),
-      supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", s.store_id),
-      supabase.from("products").select("id,nama").eq("store_id", s.store_id),
+    // Paginasi: tanpa ini order/item terpotong di 1000 baris (riwayat lama hilang).
+    const [o, it, p] = await Promise.all([
+      fetchAllRows(() => supabase.from("orders").select("*").eq("store_id", s.store_id).eq("status", "selesai")
+        .order("created_at", { ascending: false }).order("id", { ascending: true })),
+      fetchAllRows(() => supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", s.store_id).order("id", { ascending: true })),
+      fetchAllRows(() => supabase.from("products").select("id,nama").eq("store_id", s.store_id).order("id", { ascending: true })),
     ]);
-    setOrders(o || []); setItems(it || []); setProducts(p || []);
+    setOrders(o); setItems(it); setProducts(p);
   }
   useEffect(() => {
     load();
