@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseServer";
+import { manifestIcons } from "@/lib/appIconsServer";
 
 export const dynamic = "force-dynamic";
 
@@ -20,17 +21,7 @@ export async function GET(_request, { params }) {
   } catch {}
 
   const base = `/s/${slug}`;
-  const icons = logo
-    ? [
-        { src: logo, sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: logo, sizes: "192x192", type: "image/png", purpose: "any" },
-      ]
-    : [
-        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-      ];
+  const icons = manifestIcons(logo);
 
   const manifest = {
     id: base,

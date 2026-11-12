@@ -1,20 +1,18 @@
 import AdminGuard from "@/components/AdminGuard";
 import { getBrandServer } from "@/lib/brandServer";
+import { metaIcons } from "@/lib/appIconsServer";
 
 // PWA admin terpisah dari PWA pembeli: manifest, nama, ikon, & scope berbeda
 // sehingga keduanya bisa di-install berdampingan di satu HP tanpa bentrok.
 // Judul memakai nama aplikasi dari platform_settings (default DKantin).
 export async function generateMetadata() {
-  const { name } = await getBrandServer();
+  const { name, logo } = await getBrandServer();
   return {
     title: `${name} Admin Portal`,
     description: "Panel admin kantin: transaksi, produk, inventory, jurnal, laporan.",
-    manifest: "/admin-manifest.json",
+    manifest: "/admin.webmanifest",
     appleWebApp: { capable: true, statusBarStyle: "default", title: `${name} Admin Portal` },
-    icons: {
-      icon: [{ url: "/icons/admin-icon-192.png", sizes: "192x192", type: "image/png" }],
-      apple: [{ url: "/icons/admin-apple-touch.png", sizes: "180x180" }],
-    },
+    icons: metaIcons(logo, { icon: "/icons/admin-icon-192.png", favicon: "/icons/admin-icon-192.png", apple: "/icons/admin-apple-touch.png" }),
   };
 }
 
