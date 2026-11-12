@@ -196,6 +196,9 @@ export default function ReportsPage() {
         <Kpi c="#EF4444" label="Produk Aktif Terjual" value={data.kpi.produkAktifTerjual} />
       </div>
 
+      <SectionTitle>🗓️ Nominal Penjualan Harian</SectionTitle>
+      <div className="card mb-4 p-4"><DailySales trend={data.trend} /></div>
+
       {/* Detail table */}
       <SectionTitle>Detail Penjualan Barang</SectionTitle>
       <div className="card mb-4 p-4">
@@ -281,9 +284,6 @@ export default function ReportsPage() {
 
       <SectionTitle>📈 Trend Penjualan Harian</SectionTitle>
       <div className="card mb-4 p-4"><TrendChart trend={data.trend} /></div>
-
-      <SectionTitle>🗓️ Nominal Penjualan Harian</SectionTitle>
-      <div className="card mb-4 p-4"><DailySales trend={data.trend} /></div>
 
       <SectionTitle>🤖 AI Sales Insight</SectionTitle>
       <div className="card mb-6 border border-purple-100 bg-purple-50 p-4">
