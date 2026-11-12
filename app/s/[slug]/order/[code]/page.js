@@ -8,6 +8,7 @@ import { rupiah, fmtDateTime } from "@/lib/format";
 import { storePath } from "@/lib/slug";
 import { compressImage } from "@/lib/compressImage";
 import Receipt from "@/components/Receipt";
+import { useAmountQris } from "@/lib/qrisDynamic";
 
 export default function OrderStatus() {
   const { code, slug } = useParams();
@@ -20,6 +21,9 @@ export default function OrderStatus() {
   const [buktiBusy, setBuktiBusy] = useState(false);
   const [buktiMsg, setBuktiMsg] = useState("");
   const [buktiErr, setBuktiErr] = useState("");
+  // Order manual (tanpa QR Casaku) yang masih menunggu: QRIS statis diisi nominal otomatis.
+  const manualPending = !!order && !order.qr_string && order.status !== "selesai" && order.status !== "dibatalkan";
+  const manualQr = useAmountQris(settings?.qris_image_url, order?.total, manualPending);
 
   async function loadOrder() {
     const { data: o } = await supabase.from("orders").select("*").eq("kode_pesanan", code).single();
@@ -177,9 +181,12 @@ export default function OrderStatus() {
             <>
               <div className="mx-auto mt-3 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrImg || settings.qris_image_url} alt="QRIS Pembayaran" className="w-full" />
+                <img src={qrImg || manualQr || settings.qris_image_url} alt="QRIS Pembayaran" className="w-full" />
               </div>
-              <button type="button" onClick={() => downloadQris(qrImg || settings.qris_image_url)}
+              {!qrImg && manualQr && (
+                <p className="mt-2 text-xs font-semibold text-success">✓ Nominal {rupiah(order.total)} sudah terisi otomatis saat scan</p>
+              )}
+              <button type="button" onClick={() => downloadQris(qrImg || manualQr || settings.qris_image_url)}
                 className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                 Download QRIS
