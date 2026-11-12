@@ -20,7 +20,16 @@ export default function Receipt({ order, items, settings, fotos = {}, onClose })
     try {
       const html2canvas = (await import("html2canvas")).default;
       const el = document.getElementById("receipt");
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#f2f4f9", useCORS: true });
+      // Gambar JPG berbentuk persegi penuh: sudut lengkung & bayangan dimatikan
+      // HANYA pada salinan yang dirender (tampilan di layar tetap melengkung).
+      const canvas = await html2canvas(el, {
+        scale: 2, backgroundColor: "#ffffff", useCORS: true,
+        onclone: (doc) => {
+          const r = doc.getElementById("receipt");
+          if (r) { r.style.borderRadius = "0"; r.style.boxShadow = "none"; }
+          doc.querySelectorAll("[data-notch]").forEach((n) => { n.style.display = "none"; });
+        },
+      });
       const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.92));
       if (!blob) return null;
       return new File([blob], `struk-${order.kode_pesanan}.jpg`, { type: "image/jpeg" });
@@ -95,9 +104,10 @@ export default function Receipt({ order, items, settings, fotos = {}, onClose })
               </div>
               <h2 className="relative text-lg font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h2>
               {settings?.alamat && <p className="relative text-xs" style={{ color: "#b8c4dd" }}>{settings.alamat}</p>}
-              <span className="relative mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-extrabold"
-                style={{ background: "#22c55e", color: "#fff" }}>
-                {Icon.check(12)} LUNAS
+              {/* Badge sederhana (inline-block + line-height tetap) agar rata juga di JPG */}
+              <span className="relative mt-3 inline-block rounded-full text-xs font-extrabold"
+                style={{ background: "#22c55e", color: "#fff", padding: "5px 14px 6px", lineHeight: "15px" }}>
+                ✓{" "}LUNAS
               </span>
               <p className="relative mt-3 text-[11px]" style={{ color: "#b8c4dd" }}>Total dibayar</p>
               <p className="relative text-[28px] font-extrabold leading-tight">{rupiah(order.total)}</p>
@@ -105,8 +115,8 @@ export default function Receipt({ order, items, settings, fotos = {}, onClose })
 
             {/* Sobekan */}
             <div className="relative h-4">
-              <span className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-[#f2f4f9]" />
-              <span className="absolute -right-2 top-0 h-4 w-4 rounded-full bg-[#f2f4f9]" />
+              <span data-notch className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-[#f2f4f9]" />
+              <span data-notch className="absolute -right-2 top-0 h-4 w-4 rounded-full bg-[#f2f4f9]" />
               <div className="absolute inset-x-4 top-1/2 border-t-2 border-dashed border-[#d9dfec]" />
             </div>
 
@@ -124,15 +134,12 @@ export default function Receipt({ order, items, settings, fotos = {}, onClose })
               <div className="space-y-2.5">
                 {items.map((it) => (
                   <div key={it.id} className="flex items-center gap-2.5 text-sm">
-                    <span className={`h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(it.product_id)}`}>
-                      {fotos[it.product_id] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={fotos[it.product_id]} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />
-                      )}
-                    </span>
+                    {/* Foto sebagai background (cover) — html2canvas tak mendukung object-fit */}
+                    <span className={`block h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br ${tintFor(it.product_id)}`}
+                      style={fotos[it.product_id] ? { backgroundImage: `url("${fotos[it.product_id]}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined} />
                     <span className="min-w-0 flex-1 text-[#14213d]">
-                      <span className="line-clamp-1">{it.nama_produk}</span>
-                      <span className="text-xs text-[#6b7591]">{it.jumlah} × {rupiah(it.harga)}</span>
+                      <span className="block font-semibold leading-snug">{it.nama_produk}</span>
+                      <span className="block text-xs leading-snug text-[#6b7591]">{it.jumlah} × {rupiah(it.harga)}</span>
                     </span>
                     <span className="font-bold text-[#14213d]">{rupiah(it.harga * it.jumlah)}</span>
                   </div>
