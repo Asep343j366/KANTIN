@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
@@ -9,9 +9,15 @@ import { storePath } from "@/lib/slug";
 import { compressImage } from "@/lib/compressImage";
 import Receipt from "@/components/Receipt";
 import { useAmountQris } from "@/lib/qrisDynamic";
+import PayPanel from "@/components/store/PayPanel";
+import { TopBar, Icon, Confetti, tintFor } from "@/components/store/fx";
+import { reorder } from "@/components/store/reorder";
 
 export default function OrderStatus() {
   const { code, slug } = useParams();
+  const router = useRouter();
+  const [reBusy, setReBusy] = useState(false);
+  const [reMsg, setReMsg] = useState("");
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -133,145 +139,142 @@ export default function OrderStatus() {
     setBuktiBusy(false);
   }
 
-  if (loading) return <div className="container-app pt-10 text-center text-ink-soft">Memuat...</div>;
+  async function onReorder() {
+    if (!order) return;
+    setReBusy(true); setReMsg("");
+    try {
+      const r = await reorder(order.id, items);
+      if (r.added) router.push(storePath(slug, "/cart"));
+      else setReMsg("Menu di pesanan ini sedang habis semua.");
+    } catch { setReMsg("Gagal memuat ulang pesanan. Coba lagi."); }
+    setReBusy(false);
+  }
+
+  if (loading) return (
+    <main className="container-app space-y-3 pt-6">
+      <div className="zk-shimmer h-44 rounded-[28px]" />
+      <div className="zk-shimmer h-28 rounded-[1.1rem]" />
+    </main>
+  );
   if (!order) return (
-    <main className="container-app pt-16 text-center">
-      <p className="text-ink-soft">Pesanan <b>{code}</b> tidak ditemukan.</p>
-      <Link href={storePath(slug, "/order")} className="btn-primary mt-4 inline-flex">Coba Lagi</Link>
+    <main className="container-app pb-28">
+      <TopBar title="Pesanan" onBack={() => router.push(storePath(slug, "/order"))} />
+      <div className="zk-up pt-14 text-center">
+        <p className="font-bold text-[#14213d]">Pesanan <b>{code}</b> tidak ditemukan</p>
+        <Link href={storePath(slug, "/order")} className="zk-cta zk-press mt-5 inline-flex rounded-2xl px-6 py-3 text-sm font-extrabold">Coba lagi</Link>
+      </div>
     </main>
   );
 
   const paid = order.status === "selesai";
   const failed = order.status === "dibatalkan" || order.payment_status === "failed";
   // Nominal UNIK yang wajib dibayar (Casaku menyisipkan kode unik ke amount_charged).
-  // Wajib ditampilkan persis agar pembayaran terverifikasi otomatis.
   const charged = Number(order.amount_charged || 0);
   const hasUnique = charged > 0 && charged !== Number(order.total || 0);
+  const payQr = qrImg || manualQr || settings?.qris_image_url || "";
+  const payLoading = !qrImg && (qrLoading || !!order?.qr_string);
+  // Rayakan (konfeti) hanya bila baru saja lunas (≤ 3 menit).
+  const freshPaid = paid && order.paid_at && Date.now() - new Date(order.paid_at).getTime() < 3 * 60 * 1000;
 
   return (
-    <main className="container-app pb-10 pt-5">
+    <main className="container-app pb-28">
+      {!paid && (
+        <TopBar title={failed ? "Pesanan" : "Pembayaran"} onBack={() => router.push(storePath(slug, "/order"))} />
+      )}
+
       {paid && (
-        <div className="card mb-4 border-l-4 border-success bg-green-50 p-4 text-center">
-          <div className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#34D26A] to-[#16A34A] text-2xl font-black text-white">✓</div>
-          <p className="font-bold text-green-700">Pembayaran berhasil! 🎉</p>
-          <p className="text-sm text-green-700">Terima kasih, pesananmu sudah kami terima.</p>
-        </div>
-      )}
-      {!paid && !failed && (
-        <div className="card mb-4 border-l-4 border-amber-400 bg-amber-50 p-4 text-center">
-          <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-500" />
-          <p className="font-bold text-amber-700">Menunggu pembayaran…</p>
-          {hasUnique ? (
-            <>
-              <p className="mt-1 text-sm text-amber-700">Bayar PERSIS sebesar</p>
-              <p className="text-2xl font-extrabold text-amber-800">{rupiah(charged)}</p>
-              <p className="mt-0.5 text-xs text-amber-700">
-                Jangan dibulatkan — nominal ini mengandung kode unik agar pembayaran terverifikasi otomatis.
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-amber-700">Status akan otomatis diperbarui setelah pembayaran QRIS terkonfirmasi.</p>
-          )}
-        </div>
-      )}
-
-      {!paid && !failed && (qrImg || settings?.qris_image_url || settings?.info_rekening) && (
-        <div className="card mb-4 p-4 text-center">
-          <h2 className="font-bold">Scan & Bayar via QRIS</h2>
-          {(qrImg || settings?.qris_image_url) && (
-            <>
-              <div className="mx-auto mt-3 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {!qrImg && (qrLoading || order?.qr_string) ? (
-                  <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">Menyiapkan QRIS…</div>
-                ) : (
-                  <img src={qrImg || manualQr || settings.qris_image_url} alt="QRIS Pembayaran" className="w-full" />
-                )}
-              </div>
-              {!qrImg && manualQr && (
-                <p className="mt-2 text-xs font-semibold text-success">✓ Nominal {rupiah(order.total)} sudah terisi otomatis saat scan</p>
-              )}
-              <button type="button" disabled={!qrImg && (qrLoading || !!order?.qr_string)} onClick={() => downloadQris(qrImg || manualQr || settings.qris_image_url)}
-                className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                Download QRIS
-              </button>
-            </>
-          )}
-          {settings?.info_rekening && !qrImg && (
-            <div className="mx-auto mt-3 max-w-xs whitespace-pre-line rounded-xl bg-surface p-3 text-left text-sm">
-              {settings.info_rekening}
+        <div className="relative -mx-4 mb-4">
+          <div className="relative overflow-hidden rounded-b-[32px] bg-gradient-to-br from-[#1f9d63] via-[#137a4a] to-[#0d5c37] px-4 pb-16 pt-10 text-center text-white">
+            <span className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/[0.08]" />
+            <span className="pointer-events-none absolute -left-6 bottom-4 h-24 w-24 rounded-full bg-white/[0.06]" />
+            {freshPaid && <Confetti />}
+            <div className="relative mx-auto grid h-20 w-20 place-items-center">
+              <span className="zk-ripple absolute inset-0 rounded-full bg-white/30" />
+              <span className="zk-check relative grid h-16 w-16 place-items-center rounded-full bg-white text-[#1f9d63] shadow-xl">{Icon.check(30)}</span>
             </div>
-          )}
+            <p className="zk-up relative mt-4 text-lg font-extrabold" style={{ animationDelay: ".2s" }}>Pembayaran berhasil</p>
+            <p className="zk-up relative text-sm text-[#c9f2db]" style={{ animationDelay: ".28s" }}>Terima kasih, {order.nama_pelanggan}</p>
+          </div>
         </div>
       )}
 
       {!paid && !failed && (
-        <div className="card mb-4 p-4">
-          <h2 className="font-bold">Sudah bayar? Upload bukti</h2>
-          <p className="mt-1 text-xs text-ink-soft">
-            Jika sudah transfer / scan QRIS tetapi status belum berubah, unggah screenshot bukti pembayaran.
-            Bukti yang valid & nominalnya cocok akan otomatis lunas; selain itu diverifikasi admin.
-          </p>
-          <label className={`btn-outline mt-3 inline-flex cursor-pointer items-center gap-2 ${buktiBusy ? "pointer-events-none opacity-60" : ""}`}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            {buktiBusy ? "Memproses…" : "Upload Bukti Pembayaran"}
-            <input type="file" accept="image/*" className="hidden" onChange={onUploadBukti} disabled={buktiBusy} />
-          </label>
-          {buktiMsg && <p className="mt-2 text-sm font-semibold text-primary">{buktiMsg}</p>}
-          {buktiErr && <p className="mt-2 text-sm text-danger">{buktiErr}</p>}
-        </div>
+        <PayPanel
+          kode={order.kode_pesanan}
+          amount={hasUnique ? charged : Number(order.total || 0)}
+          exact={hasUnique}
+          qrSrc={payQr}
+          qrLoading={payLoading}
+          autoAmount={!qrImg && !!manualQr}
+          onDownload={() => downloadQris(payQr)}
+          infoRekening={settings?.info_rekening}
+          storeName={settings?.nama_kantin || ""}
+          onUpload={onUploadBukti}
+          buktiBusy={buktiBusy}
+          buktiMsg={buktiMsg}
+          buktiErr={buktiErr}
+        />
       )}
 
       {failed && (
-        <div className="card mb-4 border-l-4 border-danger bg-red-50 p-4 text-center">
-          <p className="font-bold text-red-700">Pembayaran gagal / kedaluwarsa</p>
-          <p className="text-sm text-red-700">Silakan pesan ulang dari menu.</p>
+        <div className="zk-up rounded-[24px] bg-gradient-to-br from-[#fdeaea] to-[#fbd5d5] p-5 text-center">
+          <p className="font-extrabold text-red-700">Pesanan dibatalkan</p>
+          <p className="mt-1 text-sm text-red-700/80">Silakan pesan ulang dari menu.</p>
         </div>
       )}
 
-      <div className="card p-5">
-        <div className="flex items-center justify-between">
+      {/* Struk ringkas */}
+      <div className={`zk-card zk-up relative p-5 ${paid ? "-mt-14" : "mt-4"}`} style={{ animationDelay: paid ? ".3s" : ".05s" }}>
+        <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-xs text-ink-soft">Kode Pesanan</p>
-            <p className="text-lg font-extrabold tracking-wide">{order.kode_pesanan}</p>
+            <p className="text-[11px] font-semibold text-[#6b7591]">Kode pesanan</p>
+            <p className="text-base font-extrabold tracking-wide text-[#14213d]">{order.kode_pesanan}</p>
+            <p className="mt-0.5 text-xs text-[#6b7591]">{fmtDateTime(order.created_at)}</p>
           </div>
-          <span className={`badge ${paid ? "bg-green-100 text-green-700" : failed ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
-            {paid ? "Selesai" : failed ? "Gagal" : "Menunggu Pembayaran"}
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${paid ? "bg-emerald-50 text-emerald-700" : failed ? "bg-red-50 text-red-600" : "bg-[#fff3e0] text-[#a35a0a]"}`}>
+            {paid ? "Lunas · QRIS" : failed ? "Dibatalkan" : "Menunggu"}
           </span>
         </div>
-        <p className="mt-1 text-xs text-ink-soft">{fmtDateTime(order.created_at)}</p>
-      </div>
-
-      <div className="card mt-4 p-5">
-        <h2 className="mb-3 font-bold">Detail Pesanan</h2>
-        {items.map((it) => (
-          <div key={it.id} className="flex justify-between py-1 text-sm">
-            <span className="text-ink-soft">{it.jumlah}× {it.nama_produk}{it.catatan ? ` (${it.catatan})` : ""}</span>
-            <span className="font-semibold">{rupiah(it.harga * it.jumlah)}</span>
-          </div>
-        ))}
-        <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 font-bold">
-          <span>Total</span><span className="text-primary">{rupiah(order.total)}</span>
+        <div className="my-3.5 border-t border-dashed border-[#d9dfec]" />
+        <div className="space-y-2">
+          {items.map((it) => (
+            <div key={it.id} className="flex items-center gap-2.5 text-sm">
+              <span className={`h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br ${tintFor(it.product_id)}`} />
+              <span className="min-w-0 flex-1 truncate text-[#14213d]"><b>{it.jumlah}×</b> {it.nama_produk}{it.catatan ? ` (${it.catatan})` : ""}</span>
+              <span className="font-bold text-[#14213d]">{rupiah(it.harga * it.jumlah)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="my-3.5 border-t border-dashed border-[#d9dfec]" />
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-bold text-[#6b7591]">Total</span>
+          <span className="text-xl font-extrabold text-[#0f2a5c]">{rupiah(order.total)}</span>
         </div>
         {hasUnique && !paid && !failed && (
-          <div className="mt-1 flex justify-between text-sm font-semibold text-amber-700">
+          <div className="mt-1 flex justify-between text-sm font-semibold text-[#a35a0a]">
             <span>Nominal bayar (unik)</span><span>{rupiah(charged)}</span>
           </div>
         )}
-        <div className="mt-2 text-sm text-ink-soft">
-          <p>Nama: {order.nama_pelanggan}</p>
-          <p>HP: {order.no_hp}</p>
-          {order.catatan && <p>Catatan: {order.catatan}</p>}
+        <div className="mt-3 rounded-2xl bg-[#f8f9fc] px-3.5 py-2.5 text-xs text-[#6b7591]">
+          <p><b className="text-[#14213d]">{order.nama_pelanggan}</b> · {order.no_hp}</p>
+          {order.catatan && <p className="mt-0.5">Catatan: {order.catatan}</p>}
         </div>
       </div>
 
-      {paid && (
-        <button onClick={() => setShowReceipt(true)} className="btn-primary mt-4 w-full">
-          Lihat Struk Digital
-        </button>
+      {reMsg && <p className="mt-3 rounded-2xl bg-[#fff3e0] px-4 py-3 text-center text-sm font-semibold text-[#a35a0a]">{reMsg}</p>}
+
+      {paid ? (
+        <div className="zk-up mt-4 grid grid-cols-2 gap-3" style={{ animationDelay: ".4s" }}>
+          <button onClick={() => setShowReceipt(true)} className="zk-card zk-press flex items-center justify-center gap-1.5 py-3.5 text-sm font-extrabold text-[#0f2a5c]">
+            {Icon.receipt(17)} Lihat struk
+          </button>
+          <button onClick={onReorder} disabled={reBusy} className="zk-cta zk-press flex items-center justify-center gap-1.5 rounded-[1.1rem] py-3.5 text-sm font-extrabold disabled:opacity-70">
+            {Icon.refresh(15)} {reBusy ? "Memuat…" : "Pesan lagi"}
+          </button>
+        </div>
+      ) : (
+        <Link href={storePath(slug)} className="mt-4 block py-2 text-center text-xs font-bold text-[#9aa3b8]">Kembali ke menu</Link>
       )}
-      <Link href={storePath(slug)} className="btn-outline mt-3 w-full">Kembali ke Menu</Link>
 
       {showReceipt && (
         <Receipt order={order} items={items} settings={settings} onClose={() => setShowReceipt(false)} />

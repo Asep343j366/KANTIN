@@ -1,13 +1,21 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import ProductCard from "@/components/ProductCard";
-import Header from "@/components/Header";
+import ProductSheet from "@/components/store/ProductSheet";
+import BrandLogo from "@/components/BrandLogo";
+import { useBrand } from "@/lib/brand";
 import { getFavorites } from "@/lib/favorites";
+import { getCart, cartCount, cartTotal } from "@/lib/cart";
+import { useSlug, storePath } from "@/lib/slug";
+import { loadBestSellers } from "@/components/store/bestSellers";
+import { CatIcon, Icon, greeting, openStatus, useBump, RollingRupiah } from "@/components/store/fx";
 import { useStore } from "./StoreProvider";
 
 export default function CatalogPage() {
   const store = useStore();
+  const brand = useBrand();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -15,6 +23,11 @@ export default function CatalogPage() {
   const [cat, setCat] = useState("all");
   const [loading, setLoading] = useState(true);
   const [favs, setFavs] = useState([]);
+  const [best, setBest] = useState({});
+  const [open, setOpen] = useState(null); // produk yang dibuka di lembar detail
+  const [now, setNow] = useState(null);
+
+  useEffect(() => { setNow(new Date()); }, []);
 
   useEffect(() => {
     const upd = () => setFavs(getFavorites());
@@ -36,73 +49,183 @@ export default function CatalogPage() {
       setSettings(set || null);
       setLoading(false);
     })();
+    // Terlaris: dimuat terpisah agar tak menahan tampilan menu.
+    loadBestSellers(store.id).then(setBest).catch(() => {});
   }, [store?.id]);
+
+  const available = (p) => p.tersedia && p.stok > 0;
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const tersedia = p.tersedia && p.stok > 0; // sembunyikan produk habis
       const okCat = cat === "fav" ? favs.includes(p.id) : (cat === "all" || p.category_id === cat);
       const okQ = p.nama.toLowerCase().includes(q.toLowerCase());
-      return tersedia && okCat && okQ;
+      return available(p) && okCat && okQ; // sembunyikan produk habis
     });
   }, [products, q, cat, favs]);
 
-  return (
-    <main className="pb-5">
-      <Header settings={settings} storeName={store?.nama} />
+  // Peringkat terlaris (hanya produk yang masih tersedia), maks 8.
+  const ranking = useMemo(() => {
+    return products
+      .filter((p) => available(p) && best[p.id] > 0)
+      .sort((a, b) => best[b.id] - best[a.id])
+      .slice(0, 8);
+  }, [products, best]);
+  const rankOf = useMemo(() => {
+    const m = {};
+    ranking.forEach((p, i) => { m[p.id] = i + 1; });
+    return m;
+  }, [ranking]);
 
-      <div className="container-app sticky top-0 z-30 bg-surface/95 px-4 pb-3 pt-3 backdrop-blur">
-        <div className="relative">
-          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
-            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3" strokeLinecap="round"/>
-          </svg>
-          <input
-            value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Cari makanan atau minuman..."
-            className="input pl-10"
-          />
+  const alternatives = useMemo(() => {
+    if (!open) return [];
+    return products.filter((p) => p.id !== open.id && available(p) && p.category_id === open.category_id).slice(0, 2);
+  }, [open, products]);
+
+  const status = openStatus(settings?.jam_operasional, now || undefined);
+  const nama = settings?.nama_kantin || store?.nama || "Kantin Digital";
+  const showRail = !q && cat === "all" && ranking.length > 0;
+
+  return (
+    <main className="pb-44">
+      {/* HERO */}
+      <header className="zk-hero relative overflow-hidden rounded-b-[28px] px-4 pb-14 pt-4 text-white">
+        <span className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-white/[0.07]" />
+        <span className="pointer-events-none absolute right-16 top-16 h-20 w-20 rounded-full bg-white/[0.06]" />
+        <span className="pointer-events-none absolute -left-8 bottom-0 h-24 w-24 rounded-full bg-[#ff8a3d]/10" />
+        <div className="container-app relative px-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-white/85">
+              <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-xl bg-white/95 shadow">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+              </span>
+              <BrandLogo brand={brand} />
+            </div>
+            {status && (
+              <span className={`zk-fade rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                status.open === false ? "bg-red-500/20 text-red-200" : "bg-emerald-400/20 text-emerald-200"}`}>
+                {status.open === null ? status.label : `● ${status.open ? "Buka" : "Tutup"} · ${status.label}`}
+              </span>
+            )}
+          </div>
+          <p className="zk-up mt-5 text-sm text-[#b8c4dd]">{now ? greeting(now) : "Halo"} 👋</p>
+          <h1 className="zk-up text-2xl font-extrabold leading-tight" style={{ animationDelay: ".05s" }}>{nama}</h1>
+          <p className="zk-up mt-0.5 text-xs text-white/60" style={{ animationDelay: ".1s" }}>Pesan dari HP, bayar QRIS, ambil di kantin.</p>
         </div>
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-          <Chip active={cat === "all"} onClick={() => setCat("all")}>Semua</Chip>
-          <Chip active={cat === "fav"} onClick={() => setCat("fav")}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill={cat === "fav" ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" className="mr-1 inline">
-              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>
-            </svg>
-            Favorit
-          </Chip>
+      </header>
+
+      {/* CARI */}
+      <div className="container-app relative z-10 -mt-7">
+        <label className="zk-card zk-up flex items-center gap-2.5 px-4 py-3.5 text-[#6b7591]" style={{ animationDelay: ".12s" }}>
+          {Icon.search()}
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari makanan atau minuman…"
+            className="w-full bg-transparent text-sm text-[#14213d] outline-none placeholder:text-[#9aa3b8]" />
+          {q && <button onClick={() => setQ("")} className="text-xs font-bold text-[#0f2a5c]">Hapus</button>}
+        </label>
+      </div>
+
+      {/* KATEGORI (menempel saat scroll) */}
+      <div className="sticky top-0 z-30 mt-3 bg-[#f2f4f9]/90 backdrop-blur">
+        <div className="container-app no-scrollbar flex gap-3 overflow-x-auto py-3">
+          <CatBtn active={cat === "all"} onClick={() => setCat("all")} label="Semua" icon={<CatIcon name="" />} />
+          <CatBtn active={cat === "fav"} onClick={() => setCat("fav")} label="Favorit" icon={Icon.heart(18, cat === "fav" ? false : false)} />
           {categories.map((c) => (
-            <Chip key={c.id} active={cat === c.id} onClick={() => setCat(c.id)}>{c.nama}</Chip>
+            <CatBtn key={c.id} active={cat === c.id} onClick={() => setCat(c.id)} label={c.nama} icon={<CatIcon name={c.nama} />} />
           ))}
         </div>
       </div>
 
-      <div className="container-app">
-        {loading ? (
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="card h-56 animate-pulse bg-gray-100" />
+      {/* TERLARIS */}
+      {showRail && (
+        <section className="mt-1">
+          <div className="container-app flex items-center justify-between pb-2">
+            <h2 className="flex items-center gap-1.5 text-[15px] font-extrabold text-[#14213d]">
+              <span className="text-[#ff7a2a]">{Icon.flame(16)}</span> Terlaris minggu ini
+            </h2>
+            <span className="text-[11px] font-semibold text-[#9aa3b8]">geser →</span>
+          </div>
+          <div className="no-scrollbar mx-auto flex max-w-md snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 pt-1">
+            {ranking.map((p, i) => (
+              <ProductCard key={p.id} product={p} demo={store?.is_demo} onOpen={setOpen} rank={i + 1}
+                variant="rail" style={{ animationDelay: `${i * 0.05}s` }} />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* SEMUA MENU */}
+      <section className="container-app mt-2">
+        <h2 className="pb-2 text-[15px] font-extrabold text-[#14213d]">
+          {cat === "fav" ? "Menu favoritmu" : q ? `Hasil untuk “${q}”` : cat === "all" ? "Semua menu" : categories.find((c) => c.id === cat)?.nama}
+        </h2>
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="zk-shimmer h-56 rounded-[1.1rem]" />)}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-ink-soft">Tidak ada produk ditemukan.</div>
+          <div className="zk-fade py-16 text-center">
+            <p className="font-bold text-[#14213d]">{cat === "fav" ? "Belum ada favorit" : "Menu tidak ditemukan"}</p>
+            <p className="mt-1 text-sm text-[#6b7591]">{cat === "fav" ? "Ketuk ♡ di menu untuk menyimpannya di sini." : "Coba kata kunci atau kategori lain."}</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            {filtered.map((p) => <ProductCard key={p.id} product={p} demo={store?.is_demo} />)}
+          <div key={cat + q} className="grid grid-cols-2 gap-3">
+            {filtered.map((p, i) => (
+              <ProductCard key={p.id} product={p} demo={store?.is_demo} onOpen={setOpen} rank={rankOf[p.id]}
+                style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }} />
+            ))}
           </div>
         )}
-      </div>
+      </section>
+
+      <CartBar />
+
+      {open && (
+        <ProductSheet product={open} rank={rankOf[open.id]} demo={store?.is_demo} alternatives={alternatives}
+          onClose={() => setOpen(null)} onPick={(p) => setOpen(p)} />
+      )}
     </main>
   );
 }
 
-function Chip({ active, onClick, children }) {
+function CatBtn({ active, onClick, label, icon }) {
   return (
-    <button onClick={onClick}
-      className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-        active ? "bg-primary text-white shadow-card" : "bg-white text-ink-soft"
-      }`}>
-      {children}
+    <button onClick={onClick} className="zk-press flex w-[62px] shrink-0 flex-col items-center gap-1.5">
+      <span className={`grid h-12 w-12 place-items-center rounded-2xl transition-all duration-300 ${
+        active ? "zk-navy scale-105 shadow-[0_6px_16px_rgba(15,42,92,.35)]" : "bg-white text-[#0f2a5c] shadow-[0_3px_10px_rgba(15,42,92,.10)]"}`}>
+        {icon}
+      </span>
+      <span className={`line-clamp-1 w-full text-center text-[11px] font-bold ${active ? "text-[#0f2a5c]" : "text-[#6b7591]"}`}>{label}</span>
     </button>
+  );
+}
+
+// Bar keranjang mengambang (muncul bila ada isi) — juga target animasi "terbang".
+function CartBar() {
+  const slug = useSlug();
+  const [items, setItems] = useState([]);
+  const bump = useBump();
+  useEffect(() => {
+    const upd = () => setItems(getCart());
+    upd();
+    window.addEventListener("cart:update", upd);
+    return () => window.removeEventListener("cart:update", upd);
+  }, []);
+  const n = cartCount(items);
+  if (!n) return null;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-[74px] z-40">
+      <div className="container-app">
+        <Link id="zk-cart-target" key={bump} href={storePath(slug, "/cart")}
+          className={`zk-navy zk-press pointer-events-auto flex items-center justify-between rounded-2xl px-4 py-3 shadow-[0_12px_28px_rgba(10,29,66,.45)] ${bump ? "zk-pop" : "zk-up"}`}>
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <span className="grid h-7 min-w-[28px] place-items-center rounded-lg bg-[#ff8a3d] px-1.5 text-xs font-extrabold text-[#0f2a5c]">{n}</span>
+            item di keranjang
+          </span>
+          <span className="flex items-center gap-1 text-sm font-extrabold text-[#ffb36b]">
+            <RollingRupiah value={cartTotal(items)} /> →
+          </span>
+        </Link>
+      </div>
+    </div>
   );
 }

@@ -9,7 +9,8 @@ import { compressImage } from "@/lib/compressImage";
 import { rupiah, orderCode } from "@/lib/format";
 import { useSlug, storePath } from "@/lib/slug";
 import { useStore } from "../StoreProvider";
-import Button from "@/components/Button";
+import PayPanel from "@/components/store/PayPanel";
+import { TopBar, StepBar, Icon, RollingRupiah, tintFor } from "@/components/store/fx";
 import { useAmountQris } from "@/lib/qrisDynamic";
 
 export default function CheckoutPage() {
@@ -49,7 +50,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!store?.id) return;
-    supabase.from("settings").select("qris_image_url, info_rekening").eq("store_id", store.id).maybeSingle()
+    supabase.from("settings").select("qris_image_url, info_rekening, nama_kantin").eq("store_id", store.id).maybeSingle()
       .then(({ data }) => setSettings(data || null));
   }, [store?.id]);
 
@@ -228,181 +229,124 @@ export default function CheckoutPage() {
 
   if (items.length === 0 && step === 1) {
     return (
-      <main className="container-app pt-16 text-center">
-        <p className="text-ink-soft">Keranjang kosong.</p>
-        <Link href={storePath(slug)} className="btn-primary mt-4 inline-flex">Lihat Menu</Link>
+      <main className="container-app pb-28">
+        <TopBar title="Checkout" onBack={() => router.push(storePath(slug))} />
+        <div className="zk-up pt-16 text-center">
+          <p className="font-bold text-[#14213d]">Keranjang kosong</p>
+          <p className="mt-1 text-sm text-[#6b7591]">Pilih menu dulu sebelum checkout.</p>
+          <Link href={storePath(slug)} className="zk-cta zk-press mt-5 inline-flex rounded-2xl px-6 py-3 text-sm font-extrabold">Lihat menu</Link>
+        </div>
       </main>
     );
   }
 
+  const storeName = settings?.nama_kantin || store?.nama || "";
+  const payQr = payMode === "casaku" ? qrImg : (manualQr || settings?.qris_image_url || "");
+  const payLoading = payMode === "casaku" ? !qrImg : (!!settings?.qris_image_url && qrLoading);
+
   return (
-    <main className="container-app pb-28 pt-5">
-      <div className="mb-5 flex items-center gap-2">
-        <StepDot n={1} active={step >= 1} label="Data" />
-        <div className="h-0.5 flex-1 bg-gray-200" />
-        <StepDot n={2} active={step >= 2} label="Bayar" />
-      </div>
+    <main className="container-app pb-28">
+      <TopBar
+        title={step === 1 ? "Data pemesan" : "Pembayaran"}
+        onBack={() => (step === 1 ? router.push(storePath(slug, "/cart")) : router.push(storePath(slug)))}
+        right={<span className="text-xs font-bold text-[#9aa3b8]">{step + 1}/3</span>}
+      />
+      <StepBar step={step + 1} />
 
       {step === 1 && (
         <div className="space-y-4">
-          <div className="card p-4">
-            <h2 className="mb-3 font-bold">Data Pengambilan</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-sm font-semibold">Nama</label>
-                <input value={nama} onChange={(e) => setNama(e.target.value)} className="input" placeholder="Nama kamu" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-semibold">Nomor HP</label>
-                <input value={hp} onChange={(e) => setHp(e.target.value)} className="input" placeholder="08xxxxxxxxxx" inputMode="numeric" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-semibold">Catatan (opsional)</label>
-                <input value={catatan} onChange={(e) => setCatatan(e.target.value)} className="input" placeholder="Catatan untuk kantin" />
-              </div>
-            </div>
+          <div className="zk-card zk-up space-y-3.5 p-4">
+            <Field icon={Icon.user()} label="Nama">
+              <input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama kamu" autoComplete="name"
+                className="w-full bg-transparent text-sm text-[#14213d] outline-none placeholder:text-[#9aa3b8]" />
+            </Field>
+            <Field icon={Icon.phone()} label="No. HP">
+              <input value={hp} onChange={(e) => setHp(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="numeric" autoComplete="tel"
+                className="w-full bg-transparent text-sm text-[#14213d] outline-none placeholder:text-[#9aa3b8]" />
+            </Field>
+            <Field icon={Icon.note()} label={<>Catatan <span className="font-medium text-[#9aa3b8]">(opsional)</span></>}>
+              <input value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan untuk kantin"
+                className="w-full bg-transparent text-sm text-[#14213d] outline-none placeholder:text-[#9aa3b8]" />
+            </Field>
           </div>
+
           <OrderSummary items={items} total={total} />
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <Button onClick={proceedToPayment} loading={processing} className="btn-block">
-            Lanjut ke Pembayaran
-          </Button>
+
+          {error && <p className="zk-up rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{error}</p>}
+
+          <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#6b7591]">
+            <span className="text-emerald-600">{Icon.shield()}</span> Pembayaran aman via QRIS
+          </p>
+          <button onClick={proceedToPayment} disabled={processing}
+            className="zk-cta zk-press relative w-full rounded-2xl py-4 text-sm font-extrabold disabled:opacity-80">
+            <span className={processing ? "invisible" : ""}>Bayar dengan QRIS · {" "}<RollingRupiah value={total} /></span>
+            {processing && <span className="absolute inset-0 flex items-center justify-center"><span className="dots"><span /><span /><span /></span></span>}
+          </button>
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-4">
-          {payMode === "casaku" ? (
-            <div className="card p-4 text-center">
-              <h2 className="font-bold">Scan & Bayar via QRIS</h2>
-              <p className="mt-1 text-sm text-ink-soft">Bayar PERSIS sebesar</p>
-              <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
-              <p className="mt-0.5 text-xs text-ink-soft">Nominal unik — jangan dibulatkan agar terverifikasi otomatis</p>
-
-              <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
-                {qrImg ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrImg} alt="QRIS Pembayaran" className="w-full" />
-                ) : (
-                  <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">
-                    Memuat QRIS...
-                  </div>
-                )}
-              </div>
-
-              {qrImg && (
-                <button type="button" onClick={() => downloadQris(qrImg)}
-                  className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                  Download QRIS
-                </button>
-              )}
-
-              <p className="mt-2 text-xs text-ink-soft">
-                Scan QRIS di atas pakai aplikasi m-banking / e-wallet apa pun.
-                Status pesanan akan otomatis diperbarui setelah pembayaran terkonfirmasi.
-              </p>
-            </div>
-          ) : (
-            <div className="card p-4 text-center">
-              <h2 className="font-bold">Selesaikan Pembayaran</h2>
-              <p className="mt-1 text-sm text-ink-soft">Bayar sebesar</p>
-              <p className="text-2xl font-extrabold text-primary">{rupiah(amount)}</p>
-
-              {settings?.qris_image_url && (
-                <>
-                  <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {qrLoading ? (
-                      <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">Menyiapkan QRIS…</div>
-                    ) : (
-                      <img src={manualQr || settings.qris_image_url} alt="QRIS" className="w-full" />
-                    )}
-                  </div>
-                  {manualQr && (
-                    <p className="mt-2 text-xs font-semibold text-success">✓ Nominal sudah terisi otomatis saat scan</p>
-                  )}
-                  <button type="button" disabled={qrLoading} onClick={() => downloadQris(manualQr || settings.qris_image_url)}
-                    className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Download QRIS
-                  </button>
-                </>
-              )}
-              {settings?.info_rekening && (
-                <div className="mx-auto mt-3 max-w-xs whitespace-pre-line rounded-xl bg-surface p-3 text-left text-sm">
-                  {settings.info_rekening}
-                </div>
-              )}
-              {!settings?.qris_image_url && !settings?.info_rekening && (
-                <p className="mt-3 text-sm text-ink-soft">Hubungi kasir untuk instruksi pembayaran.</p>
-              )}
-
-              <p className="mt-3 text-xs text-ink-soft">
-                Setelah membayar, pesananmu akan dikonfirmasi oleh kasir. Status akan
-                diperbarui otomatis begitu pembayaran diverifikasi.
-              </p>
-            </div>
-          )}
-
-          {error && <p className="text-sm text-danger">{error}</p>}
-
-          <div className="card flex items-center justify-center gap-3 border-l-4 border-amber-400 bg-amber-50 p-4">
-            <span className="h-6 w-6 animate-spin rounded-full border-4 border-amber-200 border-t-amber-500" />
-            <div className="text-left">
-              <p className="text-sm font-bold text-amber-700">Menunggu pembayaran…</p>
-              <p className="text-xs text-amber-700">Jangan tutup halaman ini. Status dicek otomatis — begitu lunas kamu langsung diarahkan ke struk.</p>
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-bold">Sudah bayar? Upload bukti</h3>
-            <p className="mt-1 text-xs text-ink-soft">
-              Jika sudah transfer / scan QRIS tetapi status belum berubah, unggah screenshot bukti pembayaran.
-              Bukti yang valid & nominalnya cocok akan otomatis lunas; selain itu diverifikasi admin.
-            </p>
-            <label className={`btn-outline mt-3 inline-flex cursor-pointer items-center gap-2 ${buktiBusy ? "pointer-events-none opacity-60" : ""}`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-              {buktiBusy ? "Memproses…" : "Upload Bukti Pembayaran"}
-              <input type="file" accept="image/*" className="hidden" onChange={onUploadBukti} disabled={buktiBusy} />
-            </label>
-            {buktiMsg && <p className="mt-2 text-sm font-semibold text-primary">{buktiMsg}</p>}
-            {buktiErr && <p className="mt-2 text-sm text-danger">{buktiErr}</p>}
-          </div>
-
+          <PayPanel
+            kode={kode}
+            amount={amount}
+            exact={payMode === "casaku"}
+            qrSrc={payQr}
+            qrLoading={payLoading}
+            autoAmount={payMode !== "casaku" && !!manualQr}
+            onDownload={() => downloadQris(payQr)}
+            infoRekening={settings?.info_rekening}
+            storeName={storeName}
+            onUpload={onUploadBukti}
+            buktiBusy={buktiBusy}
+            buktiMsg={buktiMsg}
+            buktiErr={buktiErr}
+          />
+          {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{error}</p>}
           <OrderSummary items={items} total={total} />
-
-          <p className="text-center text-xs text-ink-soft">Kode pesanan: <b>{kode}</b></p>
-          <Link href={storePath(slug)} className="btn-outline block text-center">Batalkan / Kembali ke Menu</Link>
+          <Link href={storePath(slug)} className="block py-2 text-center text-xs font-bold text-[#9aa3b8]">
+            Kembali ke menu (pesanan tersimpan di “Pesanan”)
+          </Link>
         </div>
       )}
     </main>
   );
 }
 
-function StepDot({ n, active, label }) {
+function Field({ icon, label, children }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${active ? "bg-gradient-to-br from-[#2E86FF] to-[#1657C0] text-white" : "bg-gray-200 text-ink-soft"}`}>{n}</span>
-      <span className={`text-sm font-semibold ${active ? "text-ink" : "text-ink-soft"}`}>{label}</span>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold text-[#14213d]">{label}</label>
+      <div className="flex items-center gap-2.5 rounded-2xl border border-[#e1e6f0] bg-[#f8f9fc] px-3.5 py-3 transition focus-within:border-[#0f2a5c] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(15,42,92,.08)]">
+        <span className="text-[#0f2a5c]">{icon}</span>
+        {children}
+      </div>
     </div>
   );
 }
 
 function OrderSummary({ items, total }) {
   return (
-    <div className="card p-4">
-      <h2 className="mb-3 font-bold">Ringkasan Pesanan</h2>
-      <div className="space-y-2">
+    <div className="zk-card zk-up p-4" style={{ animationDelay: ".05s" }}>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-extrabold text-[#14213d]">Ringkasan pesanan</h2>
+        <span className="text-xs font-bold text-[#c2560f]">{items.reduce((s, i) => s + i.qty, 0)} item</span>
+      </div>
+      <div className="space-y-2.5">
         {items.map((it, i) => (
-          <div key={i} className="flex justify-between text-sm">
-            <span className="text-ink-soft">{it.qty}× {it.nama}</span>
-            <span className="font-semibold">{rupiah(it.harga * it.qty)}</span>
+          <div key={i} className="flex items-center gap-2.5 text-sm">
+            <span className={`h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(it.id)}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {it.foto_url && <img src={it.foto_url} alt="" className="h-full w-full object-cover" />}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[#14213d]"><b>{it.qty}×</b> {it.nama}</span>
+            <span className="font-bold text-[#14213d]">{rupiah(it.harga * it.qty)}</span>
           </div>
         ))}
       </div>
-      <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 font-bold">
-        <span>Total</span><span className="text-primary">{rupiah(total)}</span>
+      <div className="mt-3 flex items-baseline justify-between border-t border-dashed border-[#d9dfec] pt-3">
+        <span className="text-sm font-bold text-[#6b7591]">Total</span>
+        <span className="text-lg font-extrabold text-[#0f2a5c]">{rupiah(total)}</span>
       </div>
     </div>
   );

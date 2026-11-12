@@ -30,8 +30,8 @@ export default function BottomNav() {
   const base = storePath(slug);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur">
-      <div className="container-app flex items-center justify-around py-2">
+    <nav className="fixed inset-x-0 bottom-0 z-40 rounded-t-3xl bg-white/95 shadow-[0_-6px_20px_rgba(15,42,92,.08)] backdrop-blur">
+      <div className="container-app flex items-center justify-around pb-2.5 pt-2">
         {items.map((it) => {
           const href = storePath(slug, it.sub);
           const active = it.sub === "" ? pathname === base : pathname.startsWith(href);
@@ -39,17 +39,20 @@ export default function BottomNav() {
             <Link
               key={it.sub}
               href={href}
-              className={`relative flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-xs font-medium ${
-                active ? "text-primary" : "text-ink-soft"
+              id={it.sub === "/cart" ? "zk-nav-cart" : undefined}
+              className={`zk-press relative flex flex-1 flex-col items-center gap-1 py-0.5 text-[11px] font-bold transition-colors ${
+                active ? "text-[#0f2a5c]" : "text-[#9aa3b8]"
               }`}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d={it.icon} />
-              </svg>
+              <span className={`grid h-9 w-14 place-items-center rounded-2xl transition-all duration-300 ${active ? "bg-[#e1e8f6]" : ""}`}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth={active ? 2.1 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <path d={it.icon} />
+                </svg>
+              </span>
               {it.label}
               {it.sub === "/cart" && count > 0 && (
-                <span className="absolute right-4 top-0 rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                <span key={count} className="zk-pop absolute right-[22%] top-0 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gradient-to-br from-[#ffa25c] to-[#ff7a2a] px-1 text-[10px] font-extrabold text-[#14213d] shadow">
                   {count}
                 </span>
               )}
