@@ -215,6 +215,7 @@ export default function CheckoutPage() {
           ocr_network: "pembaca otomatis tak terjangkau",
           amount_mismatch: "nominal pada bukti tak cocok",
           not_valid_proof: "bukti terlihat belum berhasil/masih pending",
+          duplicate_proof: "bukti ini sudah pernah dipakai untuk pesanan lain",
           no_image: "foto tak terbaca",
         }[d.reason] || "perlu dicek admin";
         setBuktiMsg(`Bukti sudah diterima (${why}). Pembayaran akan segera diverifikasi admin — kamu boleh menunggu di halaman ini.`);

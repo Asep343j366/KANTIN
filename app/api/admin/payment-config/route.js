@@ -38,7 +38,33 @@ export async function GET(request) {
     .eq("store_id", me.store_id)
     .maybeSingle();
 
-  return Response.json({ config: data || { store_id: me.store_id, mode: "manual", active: true } });
+  const { data: st } = await admin().from("stores").select("is_platform_admin").eq("id", me.store_id).maybeSingle();
+  const is_platform = !!st?.is_platform_admin;
+
+  if (data) return Response.json({ config: data, is_platform });
+
+  // Belum ada baris di DB tapi ENV Casaku ada → server MEMANG memakai ENV untuk
+  // store ini (lihat lib/paymentConfig.js). Tampilkan nilainya agar form tidak
+  // menyesatkan ("manual"), dan sekali "Simpan" → pindah permanen ke database.
+  if (process.env.CASAKU_LICENSE_KEY) {
+    return Response.json({
+      is_platform,
+      from_env: true,
+      config: {
+        store_id: me.store_id,
+        mode: "casaku",
+        license_key: process.env.CASAKU_LICENSE_KEY,
+        qr_id: process.env.CASAKU_QR_ID || "",
+        webhook_secret: process.env.CASAKU_WEBHOOK_SECRET || "",
+        package_ids: process.env.CASAKU_PACKAGE_IDS || "id.dana",
+        expire_minutes: Number(process.env.CASAKU_EXPIRE_MINUTES) || 1440,
+        base_url: process.env.CASAKU_BASE_URL || "https://api.casaku.id",
+        active: true,
+      },
+    });
+  }
+
+  return Response.json({ config: { store_id: me.store_id, mode: "manual", active: true }, is_platform });
 }
 
 export async function POST(request) {
@@ -55,15 +81,22 @@ export async function POST(request) {
     }
   }
 
+  // Mode manual: kredensial Casaku yang sudah tersimpan TIDAK dihapus bila form
+  // mengirim kosong (dipakai lagi saat kembali ke Casaku, dan oleh store platform
+  // untuk menagih langganan store lain).
+  const { data: prev } = await admin()
+    .from("store_payment_config").select("*").eq("store_id", me.store_id).maybeSingle();
+  const keep = (k) => b[k] || (mode === "manual" ? prev?.[k] : null) || null;
+
   const payload = {
     store_id: me.store_id,
     mode,
-    license_key: b.license_key || null,
-    qr_id: b.qr_id || null,
-    webhook_secret: b.webhook_secret || null,
-    package_ids: b.package_ids || "id.dana",
+    license_key: keep("license_key"),
+    qr_id: keep("qr_id"),
+    webhook_secret: keep("webhook_secret"),
+    package_ids: b.package_ids || prev?.package_ids || "id.dana",
     expire_minutes: parseInt(b.expire_minutes) || 1440,
-    base_url: b.base_url || "https://api.casaku.id",
+    base_url: b.base_url || prev?.base_url || "https://api.casaku.id",
     active: b.active !== false,
     updated_at: new Date().toISOString(),
   };

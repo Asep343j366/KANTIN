@@ -72,6 +72,17 @@ export async function POST(request) {
   if (!amountOk) return Response.json({ status: "manual", reason: "amount_mismatch", expected });
   if (failure) return Response.json({ status: "manual", reason: "not_valid_proof", expected });
 
+  // Cegah bukti dipakai ulang: nomor referensi transaksi yang sama tak boleh
+  // melunasi order lain. Bila kolom bukti_ref belum ada (migrasi v23 belum
+  // dijalankan) / query error → cek dilewati (perilaku lama, tidak memblokir).
+  const refs = extractRefs(text);
+  if (refs.length) {
+    const { data: dup, error: dupErr } = await db
+      .from("orders").select("id").in("bukti_ref", refs).neq("id", order.id).limit(1);
+    if (!dupErr && dup?.length) return Response.json({ status: "manual", reason: "duplicate_proof", expected });
+    if (!dupErr) await db.from("orders").update({ bukti_ref: refs[0] }).eq("id", order.id);
+  }
+
   // Lolos → settle (idempoten, sama dengan jalur manual/webhook).
   let ref = order.payment_ref;
   if (!ref) {
@@ -85,4 +96,22 @@ export async function POST(request) {
   if (rpcErr) return Response.json({ status: "manual", reason: "settle_error" });
 
   return Response.json({ status: "auto" });
+}
+
+// Ambil nomor referensi transaksi dari teks OCR — HANYA yang berada tepat setelah
+// label referensi (No. Ref / ID Transaksi / RRN / dst), agar nomor tetap milik
+// merchant (NMID, no. rekening/HP) tidak ikut dan memicu "duplikat" palsu.
+function extractRefs(text) {
+  const re = /(no\.?\s*ref(?:erensi)?|ref(?:erence|erensi)?(?:\s*(?:no\.?|number|id))?|id\s*transaksi|no\.?\s*transaksi|nomor\s*transaksi|kode\s*transaksi|transaction\s*(?:id|no\.?)|trx\s*id|rrn)\s*[:#.]?\s*(\d[\d -]{6,40}\d|[a-z0-9][a-z0-9-]{7,40})/gi;
+  const out = new Set();
+  let m;
+  while ((m = re.exec(text))) {
+    const tok = m[2].replace(/[\s-]/g, "").toUpperCase();
+    const digits = (tok.match(/\d/g) || []).length;
+    if (tok.length < 8 || digits < 6) continue;
+    if (/^ID\d{10,}$/.test(tok)) continue;          // NMID QRIS merchant
+    if (/^(62|08)\d{8,12}$/.test(tok)) continue;    // nomor HP
+    out.add(tok);
+  }
+  return [...out].slice(0, 5);
 }

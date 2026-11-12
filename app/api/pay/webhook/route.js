@@ -8,7 +8,19 @@ export const dynamic = "force-dynamic";
 // Kita WAJIB verifikasi tanda tangan sebelum mempercayai payload.
 // Balas 200 dalam <10 detik (Casaku retry hingga 3x bila gagal).
 export async function POST(request) {
-  const secret = process.env.CASAKU_WEBHOOK_SECRET;
+  // URL lama (tanpa storeId) dipakai akun Casaku store platform (J366).
+  // Secret: ENV bila masih ada, selain itu dari database store platform.
+  let secret = process.env.CASAKU_WEBHOOK_SECRET;
+  if (!secret) {
+    try {
+      const db = supabaseAdmin();
+      const { data: plat } = await db.from("stores").select("id").eq("is_platform_admin", true).limit(1).maybeSingle();
+      if (plat?.id) {
+        const { data: c } = await db.from("store_payment_config").select("webhook_secret").eq("store_id", plat.id).maybeSingle();
+        secret = c?.webhook_secret || null;
+      }
+    } catch {}
+  }
   if (!secret) {
     console.error("[casaku webhook] CASAKU_WEBHOOK_SECRET belum diset");
     return Response.json({ error: "not configured" }, { status: 500 });

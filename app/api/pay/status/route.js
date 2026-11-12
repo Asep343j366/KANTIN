@@ -31,7 +31,9 @@ export async function GET(request) {
     return Response.json({ status: "pending" });
 
   const cfg = await getPaymentConfig(order.store_id);
-  if (cfg.mode !== "casaku")
+  // Order ber-ref Casaku tetap dicek walau store sudah pindah ke mode manual
+  // (order lama yang masih pending), selama kredensial masih tersimpan.
+  if (!cfg.casaku?.licenseKey || /^(MANUAL|BUKTI)-/.test(order.payment_ref))
     return Response.json({ status: "pending" });
 
   try {

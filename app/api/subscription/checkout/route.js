@@ -61,7 +61,9 @@ export async function POST(request) {
 
   // Config Casaku J366
   const cfg = await getPaymentConfig(platformStoreId);
-  if (cfg.mode !== "casaku" || !cfg.casaku?.licenseKey || !cfg.casaku?.qrId) {
+  // Cukup kredensial lengkap — TIDAK bergantung mode kantin J366 sendiri
+  // (J366 boleh memakai mode manual untuk kantinnya, langganan tetap otomatis).
+  if (!cfg.casaku?.licenseKey || !cfg.casaku?.qrId) {
     return Response.json({ error: "Pembayaran otomatis belum dikonfigurasi admin." }, { status: 400 });
   }
 

@@ -10,6 +10,8 @@ export default function AdminPayment() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [fromEnv, setFromEnv] = useState(false);
+  const [isPlatform, setIsPlatform] = useState(false);
 
   async function token() {
     const { data } = await supabase.auth.getSession();
@@ -22,7 +24,7 @@ export default function AdminPayment() {
       const t = await token();
       const res = await fetch("/api/admin/payment-config", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
       const j = await res.json();
-      if (res.ok) setCfg(j.config);
+      if (res.ok) { setCfg(j.config); setFromEnv(!!j.from_env); setIsPlatform(!!j.is_platform); }
       else setErr(j.error || "Gagal memuat config.");
     })();
   }, []);
@@ -40,7 +42,8 @@ export default function AdminPayment() {
     const j = await res.json();
     setSaving(false);
     if (!res.ok) return setErr(j.error || "Gagal menyimpan.");
-    setMsg("Pengaturan pembayaran tersimpan.");
+    setFromEnv(false);
+    setMsg("Pengaturan pembayaran tersimpan di database.");
   }
 
   if (!cfg) return <p className="text-ink-soft">Memuat...</p>;
@@ -54,6 +57,19 @@ export default function AdminPayment() {
     <div>
       <h1 className="mb-1 text-lg font-extrabold">Pembayaran</h1>
       <p className="mb-4 text-sm text-ink-soft">Pilih cara store ini menerima pembayaran QRIS dari pelanggan.</p>
+
+      {fromEnv && (
+        <div className="card mb-4 border-l-4 border-amber-400 bg-amber-50 p-4 text-sm text-amber-800">
+          <b>Setelan ini masih dibaca dari ENV Vercel.</b> Klik <b>Simpan Pembayaran</b> sekali untuk
+          memindahkannya ke database. Setelah itu mode bisa diubah dari halaman ini (ENV tak dipakai lagi).
+        </div>
+      )}
+      {isPlatform && cfg.mode !== "casaku" && (
+        <div className="card mb-4 border-l-4 border-primary bg-primary/5 p-4 text-sm text-ink">
+          Kredensial Casaku tetap tersimpan dan <b>tetap dipakai untuk tagihan langganan</b> store lain.
+          Mode manual hanya berlaku untuk pembayaran kantin store ini.
+        </div>
+      )}
 
       {/* Pilih mode */}
       <div className="card mb-4 p-4">
