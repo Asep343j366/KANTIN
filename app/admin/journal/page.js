@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchAllRows } from "@/lib/sbPaginate";
 import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/compressImage";
@@ -27,13 +28,23 @@ export default function JournalPage() {
   const [detail, setDetail] = useState(null);
   const [openMonth, setOpenMonth] = useState(null); // {bulan, saldoAwal, masuk, keluar, sisa}
   const [storeName, setStoreName] = useState("");
+  const nowKey = new Date().toLocaleDateString("en-CA").slice(0, 7); // YYYY-MM lokal
+  const [year, setYear] = useState(nowKey.slice(0, 4));      // filter Buku Kas
+  const [histMonth, setHistMonth] = useState(nowKey);         // filter Riwayat Kas
+  const [histJenis, setHistJenis] = useState("all");
+  const [histKategori, setHistKategori] = useState("all");
 
   async function load() {
     const s = await getMyStore();
     if (!s?.store_id) { setRows([]); return; }
     setStoreName(s.store?.nama || "");
-    const { data } = await supabase.from("journal").select("*").eq("store_id", s.store_id).order("created_at", { ascending: false });
-    setRows(data || []);
+    // Paginasi: tanpa ini Supabase hanya mengembalikan 1000 baris terbaru
+    // (±4 bulan, karena tiap penjualan tercatat) → saldo & buku kas salah.
+    const data = await fetchAllRows(() =>
+      supabase.from("journal").select("*").eq("store_id", s.store_id)
+        .order("created_at", { ascending: false }).order("id", { ascending: true })
+    );
+    setRows(data);
   }
   useEffect(() => {
     load();
@@ -47,26 +58,75 @@ export default function JournalPage() {
   const totalKeluar = rows.filter((r) => r.jenis === "keluar").reduce((s, r) => s + r.jumlah, 0);
   const saldo = totalMasuk - totalKeluar;
 
-  // Buku kas per bulan dengan SALDO BERJALAN: saldo awal (akumulasi bulan
-  // sebelumnya) + pemasukan − pengeluaran = sisa saldo. Urut terbaru dulu.
-  const monthly = (() => {
+  // Kunci bulan lokal (YYYY-MM) per baris, dihitung sekali.
+  const rowsK = useMemo(() => rows.map((r) => ({ ...r, _m: new Date(r.created_at).toLocaleDateString("en-CA").slice(0, 7) })), [rows]);
+
+  // Total per bulan (seluruh riwayat).
+  const perMonth = useMemo(() => {
     const m = {};
-    rows.forEach((r) => {
-      const key = new Date(r.created_at).toLocaleDateString("en-CA").slice(0, 7); // YYYY-MM lokal
-      if (!m[key]) m[key] = { masuk: 0, keluar: 0 };
-      if (r.jenis === "masuk") m[key].masuk += r.jumlah; else m[key].keluar += r.jumlah;
+    rowsK.forEach((r) => {
+      if (!m[r._m]) m[r._m] = { masuk: 0, keluar: 0 };
+      if (r.jenis === "masuk") m[r._m].masuk += r.jumlah; else m[r._m].keluar += r.jumlah;
     });
-    const asc = Object.keys(m).sort(); // bulan terlama → terbaru
+    return m;
+  }, [rowsK]);
+
+  // Pilihan tahun: dari tahun transaksi tertua s/d tahun ini (terbaru dulu).
+  const years = useMemo(() => {
+    const cur = Number(nowKey.slice(0, 4));
+    const first = rowsK.length ? Math.min(...rowsK.map((r) => Number(r._m.slice(0, 4)))) : cur;
+    const out = [];
+    for (let y = cur; y >= Math.min(first, cur); y--) out.push(String(y));
+    return out;
+  }, [rowsK, nowKey]);
+
+  // Buku kas 1 TAHUN dengan SALDO BERJALAN: saldo awal tahun = akumulasi semua
+  // transaksi sebelum Januari tahun itu. Semua bulan tampil (s/d bulan ini bila
+  // tahun berjalan), termasuk bulan tanpa transaksi. Urut terbaru dulu.
+  const monthly = useMemo(() => {
+    const Y = year;
+    const lastM = Y === nowKey.slice(0, 4) ? Number(nowKey.slice(5, 7)) : 12;
     let running = 0;
-    const list = asc.map((bulan) => {
-      const saldoAwal = running;
-      const { masuk, keluar } = m[bulan];
-      const sisa = saldoAwal + masuk - keluar;
-      running = sisa;
-      return { bulan, saldoAwal, masuk, keluar, sisa };
+    Object.keys(perMonth).forEach((k) => {
+      if (k < `${Y}-01`) running += perMonth[k].masuk - perMonth[k].keluar;
     });
-    return list.reverse(); // tampilkan terbaru dulu
-  })();
+    const list = [];
+    for (let i = 1; i <= lastM; i++) {
+      const bulan = `${Y}-${String(i).padStart(2, "0")}`;
+      const v = perMonth[bulan] || { masuk: 0, keluar: 0 };
+      const saldoAwal = running;
+      const sisa = saldoAwal + v.masuk - v.keluar;
+      running = sisa;
+      list.push({ bulan, saldoAwal, masuk: v.masuk, keluar: v.keluar, sisa, kosong: !perMonth[bulan] });
+    }
+    return list.reverse();
+  }, [perMonth, year, nowKey]);
+  const yearMasuk = monthly.reduce((s, m) => s + m.masuk, 0);
+  const yearKeluar = monthly.reduce((s, m) => s + m.keluar, 0);
+
+  // Riwayat Kas: 1 bulan + filter jenis & kategori.
+  const histKategoriOpts = useMemo(() => {
+    const set = new Set();
+    (histJenis === "all" ? [...KATEGORI.masuk, ...KATEGORI.keluar] : KATEGORI[histJenis]).forEach((k) => set.add(k));
+    rowsK.forEach((r) => { if (histJenis === "all" || r.jenis === histJenis) set.add(r.kategori); });
+    return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [rowsK, histJenis]);
+  const histRows = useMemo(() => rowsK.filter((r) =>
+    r._m === histMonth &&
+    (histJenis === "all" || r.jenis === histJenis) &&
+    (histKategori === "all" || r.kategori === histKategori)
+  ), [rowsK, histMonth, histJenis, histKategori]);
+  const histMasuk = histRows.filter((r) => r.jenis === "masuk").reduce((s, r) => s + r.jumlah, 0);
+  const histKeluar = histRows.filter((r) => r.jenis === "keluar").reduce((s, r) => s + r.jumlah, 0);
+
+  function pickHistJenis(j) {
+    setHistJenis(j);
+    // Kategori yang tak cocok dengan jenis baru → kembali ke "Semua".
+    if (histKategori !== "all" && j !== "all") {
+      const ok = KATEGORI[j].includes(histKategori) || rowsK.some((r) => r.jenis === j && r.kategori === histKategori);
+      if (!ok) setHistKategori("all");
+    }
+  }
 
   // Semua transaksi 1 bulan (kronologis) + saldo berjalan mulai dari saldo awal.
   function monthTransactions(bulan, saldoAwal) {
@@ -147,7 +207,15 @@ export default function JournalPage() {
       </div>
 
       {/* Buku kas per bulan (saldo berjalan) */}
-      <h2 className="mb-2 mt-5 font-bold">Buku Kas per Bulan</h2>
+      <div className="mb-2 mt-5 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-bold">Buku Kas per Bulan</h2>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          Tahun
+          <select id="buku-kas-tahun" value={year} onChange={(e) => setYear(e.target.value)} className="input w-auto py-1.5">
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </label>
+      </div>
       <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
@@ -161,21 +229,31 @@ export default function JournalPage() {
             </tr>
           </thead>
           <tbody>
-            {monthly.length ? monthly.map((m) => (
+            {monthly.map((m) => (
               <tr key={m.bulan} onClick={() => setOpenMonth(m)}
-                className="cursor-pointer border-t border-gray-100 hover:bg-surface">
-                <td className="py-2 pr-2 font-semibold">{monthLabel(m.bulan)}</td>
+                className={`cursor-pointer border-t border-gray-100 hover:bg-surface ${m.kosong ? "text-ink-soft" : ""}`}>
+                <td className="py-2 pr-2 font-semibold">{monthLabel(m.bulan)}{m.kosong && <span className="ml-1 text-[11px] font-normal">(tanpa transaksi)</span>}</td>
                 <td className="py-2 pr-2 text-right text-ink-soft">{rupiah(m.saldoAwal)}</td>
                 <td className="py-2 pr-2 text-right text-success">+{rupiah(m.masuk)}</td>
                 <td className="py-2 pr-2 text-right text-danger">−{rupiah(m.keluar)}</td>
                 <td className={`py-2 pr-2 text-right font-bold ${m.sisa >= 0 ? "text-ink" : "text-danger"}`}>{rupiah(m.sisa)}</td>
                 <td className="py-2 pr-2 text-right text-primary">›</td>
               </tr>
-            )) : <tr><td colSpan={6} className="py-8 text-center text-ink-soft">Belum ada data kas.</td></tr>}
+            ))}
           </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-gray-200 font-bold">
+              <td className="py-2 pr-2">Total {year}</td>
+              <td className="py-2 pr-2 text-right text-ink-soft">{rupiah(monthly.length ? monthly[monthly.length - 1].saldoAwal : 0)}</td>
+              <td className="py-2 pr-2 text-right text-success">+{rupiah(yearMasuk)}</td>
+              <td className="py-2 pr-2 text-right text-danger">−{rupiah(yearKeluar)}</td>
+              <td className={`py-2 pr-2 text-right ${(monthly[0]?.sisa ?? 0) >= 0 ? "text-ink" : "text-danger"}`}>{rupiah(monthly[0]?.sisa ?? 0)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
-      <p className="mt-2 text-xs text-ink-soft">Klik baris bulan untuk melihat seluruh transaksi & mengekspor ke PDF.</p>
+      <p className="mt-2 text-xs text-ink-soft">Saldo awal tahun = akumulasi kas dari tahun-tahun sebelumnya. Klik baris bulan untuk melihat seluruh transaksi & mengekspor ke PDF.</p>
 
       <div className="card mt-4 p-4">
         <h2 className="mb-3 font-bold">Catat Transaksi Kas</h2>
@@ -226,6 +304,33 @@ export default function JournalPage() {
       </div>
 
       <h2 className="mb-2 mt-5 font-bold">Riwayat Kas</h2>
+      <div className="card mb-3 grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
+        <label className="block text-sm font-semibold">
+          Bulan
+          <input id="riwayat-bulan" type="month" value={histMonth} max={nowKey}
+            onChange={(e) => setHistMonth(e.target.value || nowKey)} className="input mt-1" />
+        </label>
+        <label className="block text-sm font-semibold">
+          Jenis
+          <select id="riwayat-jenis" value={histJenis} onChange={(e) => pickHistJenis(e.target.value)} className="input mt-1">
+            <option value="all">Semua</option>
+            <option value="masuk">Masuk</option>
+            <option value="keluar">Keluar</option>
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">
+          Kategori
+          <select id="riwayat-kategori" value={histKategori} onChange={(e) => setHistKategori(e.target.value)} className="input mt-1">
+            <option value="all">Semua</option>
+            {histKategoriOpts.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-ink-soft sm:col-span-3">
+          {monthLabel(histMonth)} · {histRows.length} transaksi
+          {histJenis !== "keluar" && <> · Masuk <b className="text-success">+{rupiah(histMasuk)}</b></>}
+          {histJenis !== "masuk" && <> · Keluar <b className="text-danger">−{rupiah(histKeluar)}</b></>}
+        </p>
+      </div>
       <div className="card table-scroll p-4">
         <table className="w-full text-sm">
           <thead>
@@ -238,7 +343,7 @@ export default function JournalPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length ? rows.map((r) => (
+            {histRows.length ? histRows.map((r) => (
               <tr key={r.id} onClick={() => setDetail(r)} className="cursor-pointer border-t border-gray-100 hover:bg-surface">
                 <td className="py-2 pr-2 whitespace-nowrap">{fmtDateTime(r.created_at)}</td>
                 <td className="py-2 pr-2">
@@ -252,7 +357,7 @@ export default function JournalPage() {
                   {r.jenis === "masuk" ? "+" : "−"}{rupiah(r.jumlah)}
                 </td>
               </tr>
-            )) : <tr><td colSpan={5} className="py-8 text-center text-ink-soft">Belum ada catatan kas.</td></tr>}
+            )) : <tr><td colSpan={5} className="py-8 text-center text-ink-soft">Tidak ada catatan kas untuk filter ini. Coba bulan atau kategori lain.</td></tr>}
           </tbody>
         </table>
       </div>
