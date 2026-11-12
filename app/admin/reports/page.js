@@ -137,6 +137,13 @@ export default function ReportsPage() {
       ...data.stockMonitoring.map((r) => [r.NAMA, r.stok, r.qty, n2(r.avgSalesPerHari), r.estimasiHari === null ? "-" : Math.round(r.estimasiHari)]),
     ], "Stock Monitoring");
 
+    // 8) Penjualan Harian
+    add([
+      ["Tanggal", "Transaksi", "Qty Terjual", "Nominal Penjualan"],
+      ...data.trend.map((t) => [t.date, t.trx, t.qty, t.omzet]),
+      ["TOTAL", data.trend.reduce((s, t) => s + t.trx, 0), data.trend.reduce((s, t) => s + t.qty, 0), data.trend.reduce((s, t) => s + t.omzet, 0)],
+    ], "Penjualan Harian");
+
     const d = applied.end.split("-").join("");
     XLSX.writeFile(wb, `Report_Penjualan_Barang_${d}.xlsx`);
   }
@@ -275,11 +282,77 @@ export default function ReportsPage() {
       <SectionTitle>📈 Trend Penjualan Harian</SectionTitle>
       <div className="card mb-4 p-4"><TrendChart trend={data.trend} /></div>
 
+      <SectionTitle>🗓️ Nominal Penjualan Harian</SectionTitle>
+      <div className="card mb-4 p-4"><DailySales trend={data.trend} /></div>
+
       <SectionTitle>🤖 AI Sales Insight</SectionTitle>
       <div className="card mb-6 border border-purple-100 bg-purple-50 p-4">
         <ul className="list-disc space-y-2 pl-5 text-sm">
           {data.insights.map((t, i) => <li key={i} dangerouslySetInnerHTML={{ __html: t }} />)}
         </ul>
+      </div>
+    </div>
+  );
+}
+
+// Daftar nominal penjualan per hari — mengikuti filter tanggal (& barang/kategori)
+// yang diterapkan di atas. Urut terbaru di atas; hari tanpa penjualan tetap tampil.
+function DailySales({ trend }) {
+  const [hideEmpty, setHideEmpty] = useState(false);
+  if (!trend.length) return <p className="text-sm text-ink-soft">Belum ada data.</p>;
+  const rows = trend.slice().reverse().filter((t) => !hideEmpty || t.omzet > 0);
+  const tot = trend.reduce((s, t) => ({ omzet: s.omzet + t.omzet, qty: s.qty + t.qty, trx: s.trx + t.trx }), { omzet: 0, qty: 0, trx: 0 });
+  const max = Math.max(...trend.map((t) => t.omzet)) || 1;
+  const hariAktif = trend.filter((t) => t.omzet > 0).length;
+  const fmtTgl = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-ink-soft">
+          {trend.length} hari · {hariAktif} hari ada penjualan · rata-rata <b className="text-ink">{rupiah(Math.round(tot.omzet / trend.length))}</b>/hari
+        </p>
+        <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
+          <input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} />
+          Sembunyikan hari tanpa penjualan
+        </label>
+      </div>
+      <div className="max-h-[480px] overflow-auto">
+        <table className="w-full text-[13px] sm:text-sm">
+          <thead className="sticky top-0 bg-white">
+            <tr className="text-left text-ink-soft">
+              <th className="py-2 pr-2 font-semibold">Tanggal</th>
+              <th className="py-2 pr-2 text-right font-semibold">Trx</th>
+              <th className="hidden py-2 pr-2 text-right font-semibold sm:table-cell">Qty</th>
+              <th className="py-2 pr-2 text-right font-semibold">Nominal</th>
+              <th className="hidden w-40 py-2 pr-2 sm:table-cell" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((t) => (
+              <tr key={t.date} className={`border-t border-gray-100 ${t.omzet ? "" : "text-ink-soft"}`}>
+                <td className="whitespace-nowrap py-2 pr-2">{fmtTgl(t.date)}</td>
+                <td className="py-2 pr-2 text-right">{t.trx}</td>
+                <td className="hidden py-2 pr-2 text-right sm:table-cell">{t.qty}</td>
+                <td className="whitespace-nowrap py-2 pr-2 text-right font-semibold">{t.omzet ? rupiah(t.omzet) : "—"}</td>
+                <td className="hidden py-2 pr-2 sm:table-cell">
+                  <div className="h-2 rounded-full bg-gray-100">
+                    <div className="h-2 rounded-full bg-primary" style={{ width: `${(t.omzet / max) * 100}%` }} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!rows.length && <tr><td colSpan={5} className="py-6 text-center text-ink-soft">Tidak ada penjualan pada periode ini.</td></tr>}
+          </tbody>
+          <tfoot className="sticky bottom-0 bg-white">
+            <tr className="border-t-2 border-gray-200 font-extrabold">
+              <td className="py-2 pr-2">Total</td>
+              <td className="py-2 pr-2 text-right">{tot.trx}</td>
+              <td className="hidden py-2 pr-2 text-right sm:table-cell">{tot.qty}</td>
+              <td className="whitespace-nowrap py-2 pr-2 text-right text-primary">{rupiah(tot.omzet)}</td>
+              <td className="hidden sm:table-cell" />
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );
