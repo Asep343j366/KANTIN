@@ -10,6 +10,8 @@ import { refreshBrand } from "@/lib/brand";
 import { normalizeBrand, DEFAULT_STYLE } from "@/lib/brandDefaults";
 import BrandLogo from "@/components/BrandLogo";
 import Button from "@/components/Button";
+import { DEFAULT_LOGO } from "@/lib/storeLogo";
+import { toSquarePng } from "@/lib/squareImage";
 
 async function token() {
   const { data } = await supabase.auth.getSession();
@@ -26,6 +28,8 @@ export default function StoresPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [resetFor, setResetFor] = useState(null);
+  const [logos, setLogos] = useState({});
+  const [logoFor, setLogoFor] = useState(null);
   const [optMsg, setOptMsg] = useState("");
   const [optBusy, setOptBusy] = useState(false);
 
@@ -75,6 +79,15 @@ export default function StoresPage() {
     const res = await fetch("/api/admin/stores", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
     const j = await res.json();
     if (res.ok) setStores(j.stores || []);
+    loadLogos();
+  }
+
+  async function loadLogos() {
+    const { data, error } = await supabase.from("settings").select("store_id, logo_url");
+    if (error) return;
+    const m = {};
+    (data || []).forEach((r) => { if (r.logo_url) m[r.store_id] = r.logo_url; });
+    setLogos(m);
   }
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -165,7 +178,9 @@ export default function StoresPage() {
           return (
             <div key={s.id} className="card p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logos[s.id] || DEFAULT_LOGO} alt="" className="h-11 w-11 shrink-0 rounded-xl bg-white object-cover shadow-sm" />
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold">{s.nama} {s.is_platform_admin && <span className="text-[10px] text-primary">(platform)</span>} {s.is_demo && <span className="badge bg-amber-100 text-amber-700">demo</span>}</p>
                   <p className="text-xs text-ink-soft">Site {s.kode_site} · /s/{s.slug} · {s.owner_email || "—"}</p>
                   <p className="text-xs text-ink-soft">Aktif s/d: {until ? fmtDateTime(until.toISOString()) : "—"}</p>
@@ -186,11 +201,99 @@ export default function StoresPage() {
                   <button onClick={() => setResetFor(resetFor === s.id ? null : s.id)} className="rounded-lg bg-surface px-2 py-1 text-xs font-semibold">Reset PW Owner</button>
                 </div>
               )}
+              <div className="mt-2">
+                <button onClick={() => setLogoFor(logoFor === s.id ? null : s.id)} className="rounded-lg bg-primary-light px-2 py-1 text-xs font-semibold text-primary">
+                  🖼️ {logos[s.id] ? "Ganti logo" : "Atur logo"}
+                </button>
+              </div>
+              {logoFor === s.id && (
+                <StoreLogoEditor store={s} current={logos[s.id]} onDone={() => { setLogoFor(null); loadLogos(); }} />
+              )}
               {resetFor === s.id && <ResetOwnerPassword store_id={s.id} email={s.owner_email} onDone={() => setResetFor(null)} />}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Editor logo per store (khusus admin platform). Upload ke bucket 'qris' lalu
+// simpan lewat API server (cek admin platform + service role).
+function StoreLogoEditor({ store, current, onDone }) {
+  const [file, setFile] = useState(null);
+  const [prev, setPrev] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const shown = prev || current || DEFAULT_LOGO;
+
+  async function pick(e) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setMsg("");
+    try { const png = await toSquarePng(f); setFile(png); setPrev(URL.createObjectURL(png)); }
+    catch { setMsg("Gambar tidak bisa dibaca. Coba file PNG/JPG lain."); }
+  }
+
+  async function persist(logo_url) {
+    const t = await token();
+    const res = await fetch("/api/admin/store-logo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ store_id: store.id, logo_url }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j.error || "Gagal menyimpan logo.");
+  }
+
+  async function save() {
+    if (!file) return;
+    setBusy(true); setMsg("");
+    try {
+      const path = `logo-${store.id}-${Date.now()}.png`;
+      const { error } = await supabase.storage.from("qris").upload(path, file, { upsert: true, cacheControl: "31536000", contentType: "image/png" });
+      if (error) throw error;
+      await persist(supabase.storage.from("qris").getPublicUrl(path).data.publicUrl);
+      onDone();
+    } catch (e) { setMsg("Gagal: " + (e.message || e)); }
+    setBusy(false);
+  }
+
+  async function reset() {
+    if (!(await confirmDialog({ title: "Kembalikan logo bawaan?", message: `Logo ${store.nama} akan kembali ke logo bawaan.`, confirmLabel: "Kembalikan" }))) return;
+    setBusy(true); setMsg("");
+    try { await persist(null); onDone(); } catch (e) { setMsg("Gagal: " + (e.message || e)); }
+    setBusy(false);
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-gray-100 bg-surface p-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shown} alt="Logo" className="h-16 w-16 rounded-[18px] bg-white object-cover shadow" />
+          <p className="mt-1 text-[10px] text-ink-soft">Ikon aplikasi</p>
+        </div>
+        <div className="w-48 overflow-hidden rounded-xl text-white" style={{ background: "linear-gradient(150deg,#16397a,#0f2a5c 55%,#0a1d42)" }}>
+          <div className="flex items-center gap-2 px-3 pt-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={shown} alt="" className="h-6 w-6 rounded-md bg-white object-cover" />
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-white/80">Header toko</span>
+          </div>
+          <p className="px-3 pb-2.5 pt-1.5 text-xs font-extrabold">{store.nama}</p>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] text-ink-soft">Gambar persegi, min. 512×512 px (PNG). Non-persegi otomatis dipotong di tengah.</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <label className="btn-outline btn-xs cursor-pointer">
+          Pilih gambar
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pick} />
+        </label>
+        <Button onClick={save} loading={busy} disabled={!file} className="btn-xs">Simpan logo</Button>
+        {current && <button onClick={reset} disabled={busy} className="btn-ghost btn-xs text-danger">Kembalikan bawaan</button>}
+      </div>
+      {msg && <p className="mt-2 text-xs text-danger">{msg}</p>}
     </div>
   );
 }
