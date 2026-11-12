@@ -1,16 +1,26 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { rupiah, fmtDateTime } from "@/lib/format";
+import { tintFor, Icon } from "@/components/store/fx";
 
-export default function Receipt({ order, items, settings, onClose }) {
+// Struk digital (gaya navy premium DKantin). #receipt dirender jadi JPG untuk
+// dibagikan/diunduh (html2canvas) — karena itu pakai warna solid/gradien biasa.
+export default function Receipt({ order, items, settings, fotos = {}, onClose }) {
   const [sharing, setSharing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   // Render struk (#receipt) menjadi file JPG untuk dibagikan/diunduh.
   async function buildReceiptFile() {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const el = document.getElementById("receipt");
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#f2f4f9", useCORS: true });
       const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.92));
       if (!blob) return null;
       return new File([blob], `struk-${order.kode_pesanan}.jpg`, { type: "image/jpeg" });
@@ -54,7 +64,9 @@ export default function Receipt({ order, items, settings, onClose }) {
   }
 
   async function downloadImage() {
+    setSaving(true);
     const file = await buildReceiptFile();
+    setSaving(false);
     if (!file) return;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(file);
@@ -63,56 +75,94 @@ export default function Receipt({ order, items, settings, onClose }) {
     URL.revokeObjectURL(a.href);
   }
 
+  const qty = items.reduce((s, it) => s + (it.jumlah || 0), 0);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center print:static print:bg-white print:p-0">
-      <div className="w-full max-w-md">
-        <div id="receipt" className="rounded-t-2xl bg-white p-6 print:rounded-none">
-          <div className="text-center">
-            <div className="mx-auto mb-2 grid h-14 w-14 place-items-center overflow-hidden rounded-2xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
-            </div>
-            <h2 className="text-lg font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h2>
-            {settings?.alamat && <p className="text-xs text-ink-soft">{settings.alamat}</p>}
-            <span className="badge mt-2 bg-green-100 text-green-700">LUNAS</span>
-          </div>
+    <div className="fixed inset-0 z-[60] print:static">
+      <div onClick={onClose} className="zk-fade absolute inset-0 bg-[#0a1d42]/55 backdrop-blur-[2px] print:hidden" />
+      <div className="zk-sheet absolute inset-x-0 bottom-0 mx-auto flex max-h-[92vh] w-full max-w-md flex-col rounded-t-[28px] bg-[#f2f4f9] shadow-[0_-12px_40px_rgba(10,29,66,.3)] print:static print:max-h-none print:rounded-none">
+        <div className="shrink-0 pb-1 pt-2.5 print:hidden"><div className="mx-auto h-1.5 w-11 rounded-full bg-[#d9dfec]" /></div>
 
-          <div className="my-4 border-t border-dashed border-gray-300" />
-
-          <div className="space-y-1 text-sm">
-            <Row l="Kode" r={order.kode_pesanan} />
-            <Row l="Tanggal" r={fmtDateTime(order.created_at)} />
-            <Row l="Nama" r={order.nama_pelanggan} />
-            <Row l="Metode" r="QRIS" />
-          </div>
-
-          <div className="my-4 border-t border-dashed border-gray-300" />
-
-          <div className="space-y-2">
-            {items.map((it) => (
-              <div key={it.id} className="flex justify-between text-sm">
-                <span className="text-ink-soft">{it.jumlah}× {it.nama_produk}</span>
-                <span className="font-semibold">{rupiah(it.harga * it.jumlah)}</span>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+          <div id="receipt" className="overflow-hidden rounded-[24px] bg-white shadow-[0_6px_20px_rgba(15,42,92,.10)]">
+            {/* Kepala struk */}
+            <div className="relative overflow-hidden px-5 pb-6 pt-6 text-center text-white"
+              style={{ background: "linear-gradient(150deg,#16397a 0%,#0f2a5c 55%,#0a1d42 100%)" }}>
+              <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ background: "rgba(255,255,255,.07)" }} />
+              <div className="relative mx-auto mb-2 grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-white shadow">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
               </div>
-            ))}
+              <h2 className="relative text-lg font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h2>
+              {settings?.alamat && <p className="relative text-xs" style={{ color: "#b8c4dd" }}>{settings.alamat}</p>}
+              <span className="relative mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-extrabold"
+                style={{ background: "#22c55e", color: "#fff" }}>
+                {Icon.check(12)} LUNAS
+              </span>
+              <p className="relative mt-3 text-[11px]" style={{ color: "#b8c4dd" }}>Total dibayar</p>
+              <p className="relative text-[28px] font-extrabold leading-tight">{rupiah(order.total)}</p>
+            </div>
+
+            {/* Sobekan */}
+            <div className="relative h-4">
+              <span className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-[#f2f4f9]" />
+              <span className="absolute -right-2 top-0 h-4 w-4 rounded-full bg-[#f2f4f9]" />
+              <div className="absolute inset-x-4 top-1/2 border-t-2 border-dashed border-[#d9dfec]" />
+            </div>
+
+            <div className="px-5 pb-5">
+              <div className="space-y-1.5 text-sm">
+                <Row l="Kode" r={order.kode_pesanan} strong />
+                <Row l="Tanggal" r={fmtDateTime(order.created_at)} />
+                <Row l="Nama" r={order.nama_pelanggan} />
+                <Row l="Metode" r="QRIS" />
+              </div>
+
+              <div className="my-4 border-t border-dashed border-[#d9dfec]" />
+
+              <p className="mb-2 text-xs font-bold text-[#6b7591]">{qty} item</p>
+              <div className="space-y-2.5">
+                {items.map((it) => (
+                  <div key={it.id} className="flex items-center gap-2.5 text-sm">
+                    <span className={`h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(it.product_id)}`}>
+                      {fotos[it.product_id] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={fotos[it.product_id]} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1 text-[#14213d]">
+                      <span className="line-clamp-1">{it.nama_produk}</span>
+                      <span className="text-xs text-[#6b7591]">{it.jumlah} × {rupiah(it.harga)}</span>
+                    </span>
+                    <span className="font-bold text-[#14213d]">{rupiah(it.harga * it.jumlah)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="my-4 border-t border-dashed border-[#d9dfec]" />
+
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-extrabold text-[#14213d]">TOTAL</span>
+                <span className="text-xl font-extrabold text-[#0f2a5c]">{rupiah(order.total)}</span>
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-[#f2f4f9] px-4 py-3 text-center text-xs text-[#6b7591]">
+                Tunjukkan kode <b className="text-[#0f2a5c]">{order.kode_pesanan}</b> saat mengambil pesanan.
+                <br />Terima kasih sudah jujur &amp; jajan di sini 🙏
+              </div>
+            </div>
           </div>
-
-          <div className="my-4 border-t border-dashed border-gray-300" />
-
-          <div className="flex justify-between text-base font-extrabold">
-            <span>TOTAL</span><span className="text-primary">{rupiah(order.total)}</span>
-          </div>
-
-          <p className="mt-4 text-center text-xs text-ink-soft">
-            Terima kasih! Tunjukkan kode <b>{order.kode_pesanan}</b> saat mengambil pesanan.
-          </p>
         </div>
 
-        <div className="flex gap-2 rounded-b-2xl bg-white p-4 print:hidden">
-          <button onClick={onClose} className="btn-outline flex-1">Tutup</button>
-          <button onClick={downloadImage} className="btn-outline flex-1">Simpan JPG</button>
-          <button onClick={share} disabled={sharing} className="btn-primary flex-1">
-            {sharing ? "Menyiapkan..." : "Bagikan"}
+        <div className="grid shrink-0 grid-cols-[auto_1fr_1fr] gap-2 border-t border-[#e6e9f1] bg-white px-4 pb-5 pt-3 print:hidden">
+          <button onClick={onClose} className="zk-press rounded-2xl bg-[#f2f4f9] px-4 py-3.5 text-sm font-bold text-[#6b7591]">Tutup</button>
+          <button onClick={downloadImage} disabled={saving}
+            className="zk-press flex items-center justify-center gap-1.5 rounded-2xl bg-[#e1e8f6] py-3.5 text-sm font-extrabold text-[#0f2a5c] disabled:opacity-60">
+            {Icon.download(15)} {saving ? "Menyimpan…" : "Simpan"}
+          </button>
+          <button onClick={share} disabled={sharing}
+            className="zk-cta zk-press flex items-center justify-center gap-1.5 rounded-2xl py-3.5 text-sm font-extrabold disabled:opacity-70">
+            {Icon.upload(15)} {sharing ? "Menyiapkan…" : "Bagikan"}
           </button>
         </div>
       </div>
@@ -128,11 +178,11 @@ export default function Receipt({ order, items, settings, onClose }) {
   );
 }
 
-function Row({ l, r }) {
+function Row({ l, r, strong }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-ink-soft">{l}</span>
-      <span className="font-medium">{r}</span>
+    <div className="flex justify-between gap-3">
+      <span className="text-[#6b7591]">{l}</span>
+      <span className={`text-right ${strong ? "font-extrabold tracking-wide text-[#14213d]" : "font-semibold text-[#14213d]"}`}>{r}</span>
     </div>
   );
 }

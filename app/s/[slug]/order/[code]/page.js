@@ -20,6 +20,7 @@ export default function OrderStatus() {
   const [reMsg, setReMsg] = useState("");
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
+  const [fotos, setFotos] = useState({});
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -40,6 +41,15 @@ export default function OrderStatus() {
       ]);
       setItems(its || []);
       setSettings(set || null);
+      // Foto produk untuk daftar item & struk (order_items tak menyimpan foto).
+      const ids = [...new Set((its || []).map((i) => i.product_id).filter(Boolean))];
+      if (ids.length) {
+        supabase.from("products").select("id,foto_url").in("id", ids).then(({ data }) => {
+          const m = {};
+          (data || []).forEach((p) => { if (p.foto_url) m[p.id] = p.foto_url; });
+          setFotos(m);
+        });
+      }
     }
     setOrder(o || null);
     setLoading(false);
@@ -239,7 +249,12 @@ export default function OrderStatus() {
         <div className="space-y-2">
           {items.map((it) => (
             <div key={it.id} className="flex items-center gap-2.5 text-sm">
-              <span className={`h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br ${tintFor(it.product_id)}`} />
+              <span className={`h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(it.product_id)}`}>
+                {fotos[it.product_id] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={fotos[it.product_id]} alt="" className="zk-fade h-full w-full object-cover" />
+                )}
+              </span>
               <span className="min-w-0 flex-1 truncate text-[#14213d]"><b>{it.jumlah}×</b> {it.nama_produk}{it.catatan ? ` (${it.catatan})` : ""}</span>
               <span className="font-bold text-[#14213d]">{rupiah(it.harga * it.jumlah)}</span>
             </div>
@@ -277,7 +292,7 @@ export default function OrderStatus() {
       )}
 
       {showReceipt && (
-        <Receipt order={order} items={items} settings={settings} onClose={() => setShowReceipt(false)} />
+        <Receipt order={order} items={items} settings={settings} fotos={fotos} onClose={() => setShowReceipt(false)} />
       )}
     </main>
   );
