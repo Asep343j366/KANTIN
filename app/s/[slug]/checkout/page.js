@@ -32,7 +32,7 @@ export default function CheckoutPage() {
   const [payMode, setPayMode] = useState("casaku");
   const [settings, setSettings] = useState(null);
   // Mode manual: QRIS statis toko diisi nominal otomatis (fallback gambar asli bila gagal).
-  const manualQr = useAmountQris(settings?.qris_image_url, amount, step === 2 && payMode !== "casaku");
+  const { qr: manualQr, loading: qrLoading } = useAmountQris(settings?.qris_image_url, amount, step === 2 && payMode !== "casaku");
 
   // State upload bukti
   const [buktiBusy, setBuktiBusy] = useState(false);
@@ -313,12 +313,16 @@ export default function CheckoutPage() {
                 <>
                   <div className="mx-auto mt-4 w-64 overflow-hidden rounded-2xl border border-gray-100 p-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={manualQr || settings.qris_image_url} alt="QRIS" className="w-full" />
+                    {qrLoading ? (
+                      <div className="grid aspect-square place-items-center bg-surface text-xs text-ink-soft">Menyiapkan QRIS…</div>
+                    ) : (
+                      <img src={manualQr || settings.qris_image_url} alt="QRIS" className="w-full" />
+                    )}
                   </div>
                   {manualQr && (
                     <p className="mt-2 text-xs font-semibold text-success">✓ Nominal sudah terisi otomatis saat scan</p>
                   )}
-                  <button type="button" onClick={() => downloadQris(manualQr || settings.qris_image_url)}
+                  <button type="button" disabled={qrLoading} onClick={() => downloadQris(manualQr || settings.qris_image_url)}
                     className="btn-outline mx-auto mt-3 inline-flex items-center gap-2">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                     Download QRIS
