@@ -52,7 +52,7 @@ export default function BottomNav() {
               </span>
               {it.label}
               {it.sub === "/cart" && count > 0 && (
-                <span key={count} className="zk-pop absolute right-[22%] top-0 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gradient-to-br from-[#ffa25c] to-[#ff7a2a] px-1 text-[10px] font-extrabold text-[#14213d] shadow">
+                <span key={count} className="zk-pop absolute right-[22%] top-0 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gradient-to-br from-[#ff9447] to-[#f0631c] px-1 text-[10px] font-extrabold text-white shadow">
                   {count}
                 </span>
               )}

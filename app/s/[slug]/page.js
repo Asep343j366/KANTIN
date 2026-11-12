@@ -218,7 +218,7 @@ function CartBar() {
         <Link id="zk-cart-target" key={bump} href={storePath(slug, "/cart")}
           className={`zk-navy zk-press pointer-events-auto flex items-center justify-between rounded-2xl px-4 py-3 shadow-[0_12px_28px_rgba(10,29,66,.45)] ${bump ? "zk-pop" : "zk-up"}`}>
           <span className="flex items-center gap-2 text-sm font-semibold">
-            <span className="grid h-7 min-w-[28px] place-items-center rounded-lg bg-[#ff8a3d] px-1.5 text-xs font-extrabold text-[#0f2a5c]">{n}</span>
+            <span className="grid h-7 min-w-[28px] place-items-center rounded-lg bg-gradient-to-br from-[#ff9447] to-[#f0631c] px-1.5 text-xs font-extrabold text-white">{n}</span>
             item di keranjang
           </span>
           <span className="flex items-center gap-1 text-sm font-extrabold text-[#ffb36b]">
