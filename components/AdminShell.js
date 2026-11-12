@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore, clearStoreCache } from "@/lib/store";
-import { useStoreLogo } from "@/lib/storeLogo";
+import { useAppLogo } from "@/lib/storeLogo";
 import { useBrand } from "@/lib/brand";
 import BrandLogo from "@/components/BrandLogo";
 import Button from "@/components/Button";
@@ -99,7 +99,7 @@ export default function AdminShell({ children }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [store, setStore] = useState(null);
-  const logoUrl = useStoreLogo(store?.store_id);
+  const logoUrl = useAppLogo();
   const [loggingOut, setLoggingOut] = useState(false);
   const brand = useBrand();
 

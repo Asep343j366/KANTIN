@@ -1,4 +1,5 @@
 "use client";
+import AppLogo from "@/components/AppLogo";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,7 +44,7 @@ export default function RegisterPage() {
         <div className="mb-5 flex flex-col items-center">
           <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-2xl shadow-card">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+            <AppLogo />
           </div>
           <h1 className="mt-3 flex items-baseline justify-center gap-1.5 text-xl font-extrabold text-primary">Daftar <BrandLogo brand={brand} /></h1>
           {brand.style.showTagline && <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{brand.tagline}</p>}

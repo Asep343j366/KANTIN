@@ -1,4 +1,5 @@
 "use client";
+import AppLogo from "@/components/AppLogo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -37,7 +38,7 @@ export default function AmLogin() {
         <LoginSwitch active="am" />
         <div className="mx-auto mb-3 grid h-20 w-20 place-items-center overflow-hidden rounded-2xl shadow-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+          <AppLogo />
         </div>
         <h1 className="text-center text-xl font-extrabold text-primary">Area Manager</h1>
         <p className="flex items-baseline justify-center gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-ink-soft"><BrandLogo brand={brand} /> · Controlling</p>

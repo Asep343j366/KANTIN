@@ -1,4 +1,5 @@
 "use client";
+import AppLogo from "@/components/AppLogo";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
@@ -69,7 +70,7 @@ export default function Landing() {
           <div className="flex items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-primary-light">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+              <AppLogo />
             </div>
             <div className="flex flex-col leading-none">
               <BrandLogo brand={brand} className="text-[17px]" />
@@ -218,7 +219,7 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <div className="grid h-7 w-7 place-items-center overflow-hidden rounded-lg bg-primary-light">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+              <AppLogo />
             </div>
             <div className="flex flex-col leading-none">
               <BrandLogo brand={brand} className="text-ink" />

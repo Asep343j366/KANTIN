@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMyStore, clearStoreCache } from "@/lib/store";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
-import { DEFAULT_LOGO } from "@/lib/storeLogo";
+import AppLogo from "@/components/AppLogo";
 import { confirmDialog } from "@/lib/confirmDialog";
 
 export default function AdminSettings() {
@@ -84,11 +84,10 @@ export default function AdminSettings() {
     <div>
       <h1 className="mb-4 text-lg font-extrabold">Pengaturan Kantin</h1>
       <div className="card mb-4 flex items-center gap-4 p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={s.logo_url || DEFAULT_LOGO} alt="Logo" className="h-14 w-14 shrink-0 rounded-2xl bg-white object-cover shadow" />
+        <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white shadow"><AppLogo /></span>
         <div className="text-sm">
           <p className="font-bold">Logo / Ikon Kantin</p>
-          <p className="text-xs text-ink-soft">Logo kantin diatur oleh admin platform. Hubungi admin bila ingin menggantinya.</p>
+          <p className="text-xs text-ink-soft">Satu logo untuk semua kantin, diatur oleh admin platform.</p>
         </div>
       </div>
       <div className="card space-y-3 p-5">

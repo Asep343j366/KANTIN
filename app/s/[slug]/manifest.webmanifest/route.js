@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 // Manifest PWA PER-STORE: start_url & scope diarahkan ke /s/<slug> agar,
 // saat pelanggan meng-install dari halaman toko tertentu, aplikasi yang
 // terpasang membuka toko itu — bukan landing page.
-// Ikon: logo kantin (settings.logo_url, PNG 512 persegi) bila diatur; else bawaan.
+// Ikon: logo aplikasi global (PNG 512 persegi) bila diatur; else bawaan.
 export async function GET(_request, { params }) {
   const slug = params?.slug || "";
   let nama = "Kantin";
@@ -14,10 +14,9 @@ export async function GET(_request, { params }) {
     const db = supabaseAdmin();
     const { data } = await db.from("stores").select("id, nama").eq("slug", slug).maybeSingle();
     if (data?.nama) nama = data.nama;
-    if (data?.id) {
-      const { data: set, error } = await db.from("settings").select("logo_url").eq("store_id", data.id).maybeSingle();
-      if (!error && set?.logo_url) logo = set.logo_url; // kolom belum ada (migrasi v24) → abaikan
-    }
+    // Satu logo untuk semua site (platform_settings.app_logo_url, migration v26).
+    const { data: ps, error } = await db.from("platform_settings").select("app_logo_url").eq("id", 1).maybeSingle();
+    if (!error && ps?.app_logo_url) logo = ps.app_logo_url;
   } catch {}
 
   const base = `/s/${slug}`;

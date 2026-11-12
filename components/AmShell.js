@@ -1,4 +1,5 @@
 "use client";
+import AppLogo from "@/components/AppLogo";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -50,7 +51,7 @@ export default function AmShell({ children }) {
       <div className="flex items-center gap-2.5 border-b border-gray-100 px-4 py-4">
         <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+          <AppLogo />
         </div>
         <div className="min-w-0">
           <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-soft">Area Manager</p>

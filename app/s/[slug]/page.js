@@ -98,7 +98,7 @@ export default function CatalogPage() {
             <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-white/85">
               <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-xl bg-white/95 shadow">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoOf(settings)} alt="Logo" className="h-full w-full object-cover" />
+                <img src={logoOf(brand)} alt="Logo" className="h-full w-full object-cover" />
               </span>
               <BrandLogo brand={brand} />
             </div>
