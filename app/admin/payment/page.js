@@ -94,7 +94,7 @@ export default function AdminPayment() {
       </div>
 
       {/* Field Casaku */}
-      {cfg.mode === "casaku" && (
+      {(cfg.mode === "casaku" || isPlatform) && (
         <div className="card mb-4 space-y-3 p-4">
           <a
             href="/panduan-casaku.pdf"
@@ -111,6 +111,9 @@ export default function AdminPayment() {
             </span>
           </a>
           <h2 className="font-bold">Kredensial Casaku</h2>
+          {isPlatform && cfg.mode !== "casaku" && (
+            <p className="-mt-2 text-xs text-ink-soft">Tetap diisi walau mode Manual — dipakai untuk menagih langganan store lain.</p>
+          )}
           <Field label="License Key">
             <input className="input" value={cfg.license_key || ""} onChange={(e) => set("license_key", e.target.value)} placeholder="x-license-key Casaku" />
           </Field>
