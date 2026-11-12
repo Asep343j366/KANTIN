@@ -84,7 +84,7 @@ export default function AdminSettings() {
     <div>
       <h1 className="mb-4 text-lg font-extrabold">Pengaturan Kantin</h1>
       <div className="card mb-4 flex items-center gap-4 p-4">
-        <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white shadow"><AppLogo /></span>
+        <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-2xl"><AppLogo className="h-full w-full object-contain" /></span>
         <div className="text-sm">
           <p className="font-bold">Logo / Ikon Kantin</p>
           <p className="text-xs text-ink-soft">Satu logo untuk semua kantin, diatur oleh admin platform.</p>

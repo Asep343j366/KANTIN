@@ -100,9 +100,9 @@ export default function Receipt({ order, items, settings, fotos = {}, onClose })
             <div className="relative overflow-hidden px-5 pb-6 pt-6 text-center text-white"
               style={{ background: "linear-gradient(150deg,#16397a 0%,#0f2a5c 55%,#0a1d42 100%)" }}>
               <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ background: "rgba(255,255,255,.07)" }} />
-              <div className="relative mx-auto mb-2 grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-white shadow">
+              <div className="relative mx-auto mb-2 grid h-16 w-16 place-items-center overflow-hidden rounded-2xl">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={appLogo} alt="Logo" crossOrigin="anonymous" className="h-full w-full object-cover" />
+                <img src={appLogo} alt="Logo" crossOrigin="anonymous" className="h-full w-full object-contain" />
               </div>
               <h2 className="relative text-lg font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h2>
               {settings?.alamat && <p className="relative text-xs" style={{ color: "#b8c4dd" }}>{settings.alamat}</p>}

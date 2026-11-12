@@ -263,13 +263,13 @@ function AppLogoEditor() {
       <div className="flex flex-wrap items-center gap-4">
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={shown} alt="Logo" className="h-16 w-16 rounded-[18px] bg-white object-cover shadow" />
+          <img src={shown} alt="Logo" className="h-16 w-16 rounded-[18px] object-contain" style={{ background: "repeating-conic-gradient(#eef1f6 0% 25%, #fff 0% 50%) 50% / 12px 12px" }} />
           <p className="mt-1 text-[10px] text-ink-soft">Ikon aplikasi</p>
         </div>
         <div className="w-52 overflow-hidden rounded-xl text-white" style={{ background: "linear-gradient(150deg,#16397a,#0f2a5c 55%,#0a1d42)" }}>
           <div className="flex items-center gap-2 px-3 pt-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shown} alt="" className="h-6 w-6 rounded-md bg-white object-cover" />
+            <img src={shown} alt="" className="h-7 w-7 object-contain" />
             <span className="text-[9px] font-semibold uppercase tracking-wide text-white/80">Header toko</span>
           </div>
           <p className="px-3 pb-2.5 pt-1.5 text-xs font-extrabold">Nama Kantin</p>
