@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d4a96"/><stop offset=".55" stop-color="#0f2a5c"/><stop offset="1" stop-color="#0a1d42"/></linearGradient></defs>
+<rect width="512" height="512" fill="url(#bg)"/>
+<circle cx="440" cy="70" r="150" fill="#fff" opacity=".06"/>
+<rect x="134" y="226" width="244" height="186" rx="14" fill="#fff"/>
+<rect x="222" y="304" width="68" height="108" rx="10" fill="#0f2a5c"/>
+<rect x="158" y="262" width="44" height="40" rx="8" fill="#ffd2a8"/><rect x="310" y="262" width="44" height="40" rx="8" fill="#ffd2a8"/>
+<g>
+<path d="M112 150 H400 L410 214 H102 Z" fill="#fff"/>
+<path d="M112 150 H170 L164 214 H102 Z M228 150 H284 L286 214 H226 Z M342 150 H400 L410 214 H348 Z" fill="#ff7a2a"/>
+<path d="M102 214 a26 22 0 0 0 52 0 a26 22 0 0 0 52 0 a26 22 0 0 0 52 0 a26 22 0 0 0 52 0 a26 22 0 0 0 52 0 a26 22 0 0 0 52 0 Z" fill="#fff"/>
+<path d="M102 214 a26 22 0 0 0 52 0 Z M206 214 a26 22 0 0 0 52 0 Z M310 214 a26 22 0 0 0 52 0 Z" fill="#ff7a2a"/>
+</g>
+<circle cx="376" cy="392" r="50" fill="#22c55e" stroke="#0f2a5c" stroke-width="12"/>
+<path d="M352 392 l16 16 l30 -32" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

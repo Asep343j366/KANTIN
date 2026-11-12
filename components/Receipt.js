@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import { tintFor, Icon } from "@/components/store/fx";
+import { logoOf } from "@/lib/storeLogo";
 
 // Struk digital (gaya navy premium DKantin). #receipt dirender jadi JPG untuk
 // dibagikan/diunduh (html2canvas) — karena itu pakai warna solid/gradien biasa.
@@ -100,7 +101,7 @@ export default function Receipt({ order, items, settings, fotos = {}, onClose })
               <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ background: "rgba(255,255,255,.07)" }} />
               <div className="relative mx-auto mb-2 grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-white shadow">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+                <img src={logoOf(settings)} alt="Logo" crossOrigin="anonymous" className="h-full w-full object-cover" />
               </div>
               <h2 className="relative text-lg font-extrabold">{settings?.nama_kantin || "Kantin Digital"}</h2>
               {settings?.alamat && <p className="relative text-xs" style={{ color: "#b8c4dd" }}>{settings.alamat}</p>}

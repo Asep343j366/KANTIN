@@ -12,6 +12,7 @@ import { useSlug, storePath } from "@/lib/slug";
 import { loadBestSellers } from "@/components/store/bestSellers";
 import { CatIcon, Icon, greeting, openStatus, useBump, RollingRupiah } from "@/components/store/fx";
 import { useStore } from "./StoreProvider";
+import { logoOf } from "@/lib/storeLogo";
 
 export default function CatalogPage() {
   const store = useStore();
@@ -97,7 +98,7 @@ export default function CatalogPage() {
             <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-white/85">
               <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-xl bg-white/95 shadow">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+                <img src={logoOf(settings)} alt="Logo" className="h-full w-full object-cover" />
               </span>
               <BrandLogo brand={brand} />
             </div>

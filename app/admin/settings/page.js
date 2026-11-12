@@ -4,6 +4,114 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMyStore, clearStoreCache } from "@/lib/store";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
+import { DEFAULT_LOGO } from "@/lib/storeLogo";
+import { confirmDialog } from "@/lib/confirmDialog";
+
+// Potong tengah jadi persegi & perkecil ke 512px PNG (transparansi tetap).
+async function toSquarePng(file, size = 512) {
+  const bmp = await createImageBitmap(file);
+  const side = Math.min(bmp.width, bmp.height);
+  const sx = (bmp.width - side) / 2, sy = (bmp.height - side) / 2;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const ctx = c.getContext("2d");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bmp, sx, sy, side, side, 0, 0, size, size);
+  return await new Promise((res) => c.toBlob(res, "image/png"));
+}
+
+// Logo / ikon kantin: tampil di header toko, struk, sidebar admin, dan ikon
+// aplikasi saat pelanggan "Tambahkan ke Layar Utama". Disimpan terpisah dari
+// pengaturan lain (aman bila migrasi v24 belum dijalankan).
+function LogoSettings({ storeId, current, nama, onSaved }) {
+  const [file, setFile] = useState(null);
+  const [prev, setPrev] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const shown = prev || current || DEFAULT_LOGO;
+
+  async function pick(e) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setMsg("");
+    try {
+      const png = await toSquarePng(f);
+      setFile(png);
+      setPrev(URL.createObjectURL(png));
+    } catch { setMsg("Gambar tidak bisa dibaca. Coba file PNG/JPG lain."); }
+  }
+
+  async function persist(url) {
+    const { error } = await supabase.from("settings").upsert({ store_id: storeId, logo_url: url }, { onConflict: "store_id" });
+    if (error) {
+      if (/logo_url/.test(error.message || "")) throw new Error("Kolom logo belum ada — jalankan supabase/migration_v24_store_logo.sql dulu.");
+      throw error;
+    }
+    try { sessionStorage.removeItem(`zk_logo_${storeId}`); } catch {}
+    window.dispatchEvent(new Event("logo:update"));
+    onSaved(url);
+  }
+
+  async function save() {
+    if (!file || !storeId) return;
+    setBusy(true); setMsg("");
+    try {
+      const path = `logo-${storeId}-${Date.now()}.png`;
+      const { error } = await supabase.storage.from("qris").upload(path, file, { upsert: true, cacheControl: "31536000", contentType: "image/png" });
+      if (error) throw error;
+      const url = supabase.storage.from("qris").getPublicUrl(path).data.publicUrl;
+      await persist(url);
+      setFile(null); setPrev(null);
+      setMsg("Logo tersimpan. Pelanggan melihatnya saat membuka/memuat ulang toko.");
+    } catch (e) { setMsg("Gagal: " + (e.message || e)); }
+    setBusy(false);
+  }
+
+  async function reset() {
+    if (!(await confirmDialog({ title: "Kembalikan logo bawaan?", message: "Logo kantin akan diganti kembali ke logo bawaan.", confirmLabel: "Kembalikan" }))) return;
+    setBusy(true); setMsg("");
+    try { await persist(null); setFile(null); setPrev(null); setMsg("Logo dikembalikan ke bawaan."); }
+    catch (e) { setMsg("Gagal: " + (e.message || e)); }
+    setBusy(false);
+  }
+
+  return (
+    <div className="card mb-4 p-5">
+      <h2 className="font-bold">Logo / Ikon Kantin</h2>
+      <p className="mt-0.5 text-xs text-ink-soft">
+        Tampil di header toko, struk, sidebar admin, dan ikon aplikasi di HP pelanggan. Gunakan gambar <b>persegi</b> (minimal 512×512 px, PNG).
+        Gambar non-persegi otomatis dipotong di tengah.
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-5">
+        {/* Pratinjau: ikon aplikasi */}
+        <div className="text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shown} alt="Logo" className="h-20 w-20 rounded-[22px] bg-white object-cover shadow-[0_6px_18px_rgba(15,42,92,.18)]" />
+          <p className="mt-1.5 text-[11px] text-ink-soft">Ikon aplikasi</p>
+        </div>
+        {/* Pratinjau: header toko */}
+        <div className="w-56 overflow-hidden rounded-2xl text-white" style={{ background: "linear-gradient(150deg,#16397a,#0f2a5c 55%,#0a1d42)" }}>
+          <div className="flex items-center gap-2 px-3 pt-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={shown} alt="" className="h-7 w-7 rounded-lg bg-white object-cover" />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/80">DKantin</span>
+          </div>
+          <p className="px-3 pb-3 pt-2 text-sm font-extrabold">{nama || "Nama Kantin"}</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <label className="btn-outline cursor-pointer">
+          Pilih gambar
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pick} />
+        </label>
+        <Button onClick={save} loading={busy} disabled={!file}>Simpan logo</Button>
+        {(current || prev) && <button onClick={reset} disabled={busy} className="btn-ghost text-danger">Kembalikan bawaan</button>}
+      </div>
+      {msg && <p className="mt-2 text-sm text-primary">{msg}</p>}
+    </div>
+  );
+}
 
 export default function AdminSettings() {
   const [s, setS] = useState(null);
@@ -81,6 +189,7 @@ export default function AdminSettings() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold">Pengaturan Kantin</h1>
+      <LogoSettings storeId={storeId} current={s.logo_url} nama={s.nama_kantin} onSaved={(u) => set("logo_url", u)} />
       <div className="card space-y-3 p-5">
         <div>
           <label className="mb-1 block text-sm font-semibold">Nama Kantin</label>

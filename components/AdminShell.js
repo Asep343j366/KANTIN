@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore, clearStoreCache } from "@/lib/store";
+import { useStoreLogo } from "@/lib/storeLogo";
 import { useBrand } from "@/lib/brand";
 import BrandLogo from "@/components/BrandLogo";
 import Button from "@/components/Button";
@@ -98,6 +99,7 @@ export default function AdminShell({ children }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [store, setStore] = useState(null);
+  const logoUrl = useStoreLogo(store?.store_id);
   const [loggingOut, setLoggingOut] = useState(false);
   const brand = useBrand();
 
@@ -128,7 +130,7 @@ export default function AdminShell({ children }) {
       <div className="flex items-center gap-2.5 border-b border-gray-100 px-4 py-4">
         <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+          <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
         </div>
         <div className="min-w-0">
           <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -190,7 +192,7 @@ export default function AdminShell({ children }) {
           </button>
           <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg md:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/icon-512.png" alt="Logo" className="h-full w-full object-contain" />
+            <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
           </div>
           <h1 className="text-base font-extrabold text-ink">{current?.label || "Dashboard"}</h1>
         </header>
