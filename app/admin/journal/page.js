@@ -26,6 +26,7 @@ export default function JournalPage() {
   const [err, setErr] = useState("");
   const [me, setMe] = useState("admin");
   const [detail, setDetail] = useState(null);
+  const [storeInfo, setStoreInfo] = useState(null);
   const [laba, setLaba] = useState({}); // { 'YYYY-MM': {omzet, laba} } — null = RPC belum ada
   const [openMonth, setOpenMonth] = useState(null); // {bulan, saldoAwal, masuk, keluar, sisa}
   const [storeName, setStoreName] = useState("");
@@ -39,6 +40,7 @@ export default function JournalPage() {
     const s = await getMyStore();
     if (!s?.store_id) { setRows([]); return; }
     setStoreName(s.store?.nama || "");
+    setStoreInfo({ id: s.store_id, ...(s.store || {}) });
     // Paginasi: tanpa ini Supabase hanya mengembalikan 1000 baris terbaru
     // (±4 bulan, karena tiap penjualan tercatat) → saldo & buku kas salah.
     const data = await fetchAllRows(() =>
@@ -382,6 +384,9 @@ export default function JournalPage() {
         <MonthStatement
           m={openMonth}
           storeName={storeName}
+          store={storeInfo}
+          adminEmail={me}
+          sales={laba?.[openMonth.bulan] || { omzet: 0, laba: 0 }}
           txs={monthTransactions(openMonth.bulan, openMonth.saldoAwal)}
           onClose={() => setOpenMonth(null)}
         />
@@ -391,8 +396,23 @@ export default function JournalPage() {
 }
 
 // Laporan buku kas 1 bulan: ringkasan saldo + daftar transaksi + export PDF.
-function MonthStatement({ m, storeName, txs, onClose }) {
+function MonthStatement({ m, storeName, txs, onClose, store, adminEmail, sales }) {
   const brand = useBrand();
+  const [catatan, setCatatan] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfErr, setPdfErr] = useState("");
+  async function downloadReport() {
+    if (!store?.id) return setPdfErr("Data store belum termuat, coba lagi.");
+    setPdfBusy(true); setPdfErr("");
+    try {
+      const { downloadMonthlyReport } = await import("@/lib/monthlyReportPdf");
+      await downloadMonthlyReport({
+        store, m, txs, omzet: sales?.omzet || 0, laba: sales?.laba || 0,
+        adminEmail, catatan, logoUrl: brand.logo || "/icons/icon-512.png", appName: brand.name,
+      });
+    } catch (e) { setPdfErr("Gagal membuat PDF: " + (e.message || e)); }
+    setPdfBusy(false);
+  }
   function exportPdf() {
     const label = monthLabel(m.bulan);
     const barisTx = txs.map((t) => `
@@ -498,9 +518,14 @@ function MonthStatement({ m, storeName, txs, onClose }) {
 
         {/* Tombol sticky di bawah */}
         <div className="shrink-0 border-t border-gray-100 p-4">
-          <div className="flex gap-2">
-            <Button onClick={exportPdf} className="flex-1">Export PDF</Button>
-            <button onClick={onClose} className="btn-outline flex-1 px-4 py-2">Tutup</button>
+          <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} rows={2} maxLength={800}
+            placeholder="Catatan untuk Area Manager (opsional) — ikut tercetak di laporan bulanan"
+            className="input mb-2 text-sm" />
+          {pdfErr && <p className="mb-2 text-xs text-danger">{pdfErr}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={downloadReport} loading={pdfBusy} className="flex-[2]">⬇ Unduh Laporan Bulanan (PDF)</Button>
+            <button onClick={exportPdf} className="btn-outline flex-1 px-4 py-2">Cetak Buku Kas</button>
+            <button onClick={onClose} className="btn-outline px-4 py-2">Tutup</button>
           </div>
         </div>
       </div>
