@@ -1,7 +1,7 @@
 // Service worker sederhana untuk PWA Kantin.
 // Strategi: network-first untuk navigasi (agar data selalu fresh),
 // cache-first untuk aset statis, plus offline shell.
-const CACHE = "kantin-v5";
+const CACHE = "kantin-v6"; // v6: manifest & ikon network-first (ikon PWA ikut ter-update)
 const APP_SHELL = ["/", "/offline.html", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -30,6 +30,13 @@ self.addEventListener("fetch", (e) => {
   // Ini penyebab "Kelola Store" hanya menampilkan sebagian store sampai hard reload.
   if (url.pathname.startsWith("/api/")) {
     e.respondWith(fetch(req));
+    return;
+  }
+
+  // Manifest PWA & ikon: network-first. Bila disajikan dari cache, Chrome tak
+  // pernah melihat ikon/nama baru → aplikasi terpasang tak ikut ter-update.
+  if (url.pathname.endsWith(".webmanifest") || url.pathname.endsWith("manifest.json") || url.pathname.startsWith("/icons/")) {
+    e.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }
 
