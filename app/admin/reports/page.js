@@ -39,18 +39,19 @@ export default function ReportsPage() {
       const [orders, items, products, cats] = await Promise.all([
         fetchAllRows(() => supabase.from("orders").select("id,kode_pesanan,total,created_at,status").eq("store_id", sid).order("id", { ascending: true })),
         fetchAllRows(() => supabase.from("order_items").select("order_id,product_id,nama_produk,harga,jumlah").eq("store_id", sid).order("id", { ascending: true })),
-        fetchAllRows(() => supabase.from("products").select("id,nama,harga,stok,tersedia,category_id").eq("store_id", sid).order("id", { ascending: true })),
+        fetchAllRows(() => supabase.from("products").select("id,nama,harga,hpp,stok,tersedia,category_id,created_at").eq("store_id", sid).order("id", { ascending: true })),
         fetchAllRows(() => supabase.from("categories").select("id,nama").eq("store_id", sid).order("id", { ascending: true })),
       ]);
       const catMap = {}; cats.forEach((c) => (catMap[c.id] = c.nama));
       const prods = products.map((p) => ({ ...p, categoryNama: catMap[p.category_id] || "Lainnya" }));
-      setRaw({ orders, items, products: prods, cats });
+      const { data: set } = await supabase.from("settings").select("stok_menipis_threshold").eq("store_id", sid).maybeSingle();
+      setRaw({ orders, items, products: prods, cats, threshold: set?.stok_menipis_threshold || 5 });
     })();
   }, []);
 
   const data = useMemo(() => {
     if (!raw) return null;
-    return computeReport(raw.orders, raw.items, raw.products, applied);
+    return computeReport(raw.orders, raw.items, raw.products, { ...applied, threshold: raw.threshold });
   }, [raw, applied]);
 
   if (!raw || !data) return <p className="text-ink-soft">Memuat laporan...</p>;
@@ -91,6 +92,9 @@ export default function ReportsPage() {
     add([
       ["Metrik", "Nilai"],
       ["Total Penjualan", data.kpi.totalPenjualan],
+      ["Laba (Omzet - HPP)", data.kpi.totalLaba],
+      ["Margin %", n2(data.kpi.marginPct)],
+      ["Nilai Dead Stock (HPP)", data.kpi.nilaiDeadStock],
       ["Total Qty Terjual", data.kpi.totalQty],
       ["Total Transaksi", data.kpi.totalTransaksi],
       ["Jumlah SKU Terjual", data.kpi.skuCount],
@@ -121,20 +125,20 @@ export default function ReportsPage() {
 
     // 5) Slow Moving
     add([
-      ["Nama Barang", "Qty", "Last Sale Date", "Days Since Last Sale"],
-      ...data.slowMoving.map((r) => [r.NAMA, r.qty, r.lastSale || "Belum pernah", r.days === Infinity ? "-" : r.days]),
+      ["Nama Barang", "Stok", "Qty Periode", "Last Sale Date", "Days Since Last Sale"],
+      ...data.slowMoving.map((r) => [r.NAMA, r.stok, r.qty, r.lastSale || "-", r.days]),
     ], "Slow Moving");
 
     // 6) Dead Stock
     add([
-      ["Nama Barang", "Stok Saat Ini", "Last Sale Date", "Days Since Last Sale"],
-      ...data.deadStock.map((r) => [r.NAMA, r.stok, r.lastSale || "Belum pernah", r.days === Infinity ? "-" : r.days]),
+      ["Nama Barang", "Stok Saat Ini", "Nilai Stok (HPP)", "Last Sale Date", "Days Since Last Sale"],
+      ...data.deadStock.map((r) => [r.NAMA, r.stok, r.nilaiStok, r.lastSale || "Belum pernah", r.days === Infinity ? "-" : r.days]),
     ], "Dead Stock");
 
     // 7) Stock Monitoring
     add([
-      ["Nama Barang", "Stok Saat Ini", "Qty Terjual", "Avg Sales per Hari", "Estimasi Hari Stok Bertahan"],
-      ...data.stockMonitoring.map((r) => [r.NAMA, r.stok, r.qty, n2(r.avgSalesPerHari), r.estimasiHari === null ? "-" : Math.round(r.estimasiHari)]),
+      ["Status", "Nama Barang", "Stok Saat Ini", "Qty Terjual", "Avg Sales per Hari", "Estimasi Hari Stok Bertahan"],
+      ...data.stockMonitoring.map((r) => [r.status, r.NAMA, r.stok, r.qty, n2(r.avgSalesPerHari), r.stok <= 0 || r.estimasiHari === null ? "-" : Math.round(r.estimasiHari)]),
     ], "Stock Monitoring");
 
     // 8) Penjualan Harian
@@ -185,15 +189,19 @@ export default function ReportsPage() {
       <SectionTitle>Ringkasan KPI</SectionTitle>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi c="#22C55E" label="Total Penjualan" value={rupiah(data.kpi.totalPenjualan)} />
+        <Kpi c="#0EA5E9" label={`Laba (Omzet − HPP) · margin ${data.kpi.marginPct.toFixed(1)}%`} value={rupiah(data.kpi.totalLaba)} />
         <Kpi c="#1B6FEB" label="Total Qty Terjual" value={data.kpi.totalQty} />
         <Kpi c="#A855F7" label="Total Transaksi" value={data.kpi.totalTransaksi} />
-        <Kpi c="#EC4899" label="Jumlah SKU Terjual" value={data.kpi.skuCount} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Kpi c="#EC4899" label="Jumlah SKU Terjual" value={data.kpi.skuCount} />
         <Kpi c="#F59E0B" label="Avg. Penjualan/Hari" value={rupiah(Math.round(data.kpi.avgPerHari))} />
         <Kpi c="#14B8A6" label="Avg. Qty/Transaksi" value={data.kpi.avgQtyPerTrx.toFixed(1)} />
         <Kpi c="#6366F1" label="Avg. Basket Size" value={rupiah(Math.round(data.kpi.avgBasket))} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi c="#EF4444" label="Produk Aktif Terjual" value={data.kpi.produkAktifTerjual} />
+        <Kpi c="#7C3AED" label="Nilai Dead Stock (HPP)" value={rupiah(data.kpi.nilaiDeadStock)} />
       </div>
 
       <SectionTitle>🗓️ Nominal Penjualan Harian</SectionTitle>
@@ -250,35 +258,39 @@ export default function ReportsPage() {
       <div className="card mb-3 p-4"><BarChart items={data.contributors} valueKey="total" fmt={(v) => rupiah(v)} /></div>
 
       <SectionTitle>🐌 Top 10 Slow Moving Item</SectionTitle>
+      <p className="mb-2 text-xs text-ink-soft">Masih punya stok & masih terjual dalam {data.deadDays} hari terakhir, tapi paling sedikit lakunya pada periode ini. Stok 0 tidak ditampilkan.</p>
       <div className="card mb-4 p-4">
         <MiniTable rows={data.slowMoving} cols={[
           { h: "Nama", get: (r) => r.NAMA },
-          { h: "Qty", get: (r) => r.qty },
-          { h: "Last Sale", get: (r) => r.lastSale || "Belum pernah" },
-          { h: "Hari sejak terjual", get: (r) => (r.days === Infinity ? "-" : r.days) },
+          { h: "Stok", get: (r) => <b>{r.stok}</b> },
+          { h: "Qty (periode)", get: (r) => r.qty },
+          { h: "Last Sale", get: (r) => r.lastSale || "-" },
+          { h: "Hari sejak terjual", get: (r) => r.days },
         ]} />
       </div>
 
       <SectionTitle>🚨 Dead Stock Monitoring</SectionTitle>
-      <p className="mb-2 text-xs text-ink-soft">Kriteria dead stock: tidak terjual &gt; 30 hari — {data.deadStock.length} barang terdeteksi.</p>
+      <p className="mb-2 text-xs text-ink-soft">Dead stock = masih ada stok tapi tidak terjual &gt; {data.deadDays} hari (atau belum pernah terjual padahal produk sudah &gt; {data.deadDays} hari). Stok 0 tidak dihitung — {data.deadStock.length} barang, nilai {rupiah(data.kpi.nilaiDeadStock)}.</p>
       <div className="card mb-4 p-4">
         <MiniTable rows={data.deadStock} cols={[
           { h: "Nama", get: (r) => <span>{r.NAMA} <span className="ml-1 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">DEAD</span></span> },
           { h: "Stok", get: (r) => r.stok },
+          { h: "Nilai (HPP)", get: (r) => rupiah(r.nilaiStok) },
           { h: "Last Sale", get: (r) => r.lastSale || "Belum pernah" },
           { h: "Hari", get: (r) => (r.days === Infinity ? "-" : r.days) },
         ]} />
       </div>
 
       <SectionTitle>📦 Stock Monitoring</SectionTitle>
-      <p className="mb-2 text-xs text-ink-soft">Estimasi Hari Bertahan = Stok ÷ Rata-rata penjualan/hari.</p>
+      <p className="mb-2 text-xs text-ink-soft">Hanya produk dijual yang perlu tindakan: stok minus, habis padahal laku, estimasi habis ≤ 3 hari (Kritis) atau ≤ 7 hari / stok ≤ {data.threshold} (Menipis). Estimasi = Stok ÷ rata-rata terjual per hari pada periode.</p>
       <div className="card mb-4 p-4">
         <MiniTable rows={data.stockMonitoring} cols={[
+          { h: "Status", get: (r) => <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.status === "Menipis" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>{r.status}</span> },
           { h: "Nama", get: (r) => r.NAMA },
           { h: "Stok", get: (r) => r.stok },
           { h: "Qty Terjual", get: (r) => r.qty },
           { h: "Avg/Hari", get: (r) => r.avgSalesPerHari.toFixed(2) },
-          { h: "Estimasi Habis", get: (r) => r.estimasiHari === null ? "-" : <span className={r.estimasiHari <= 7 ? "font-bold text-danger" : ""}>{Math.round(r.estimasiHari)} hari</span> },
+          { h: "Estimasi Habis", get: (r) => r.stok <= 0 || r.estimasiHari === null ? "-" : <span className={r.estimasiHari <= 7 ? "font-bold text-danger" : ""}>{Math.round(r.estimasiHari)} hari</span> },
         ]} />
       </div>
 

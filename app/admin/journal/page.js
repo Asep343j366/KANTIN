@@ -26,6 +26,7 @@ export default function JournalPage() {
   const [err, setErr] = useState("");
   const [me, setMe] = useState("admin");
   const [detail, setDetail] = useState(null);
+  const [laba, setLaba] = useState({}); // { 'YYYY-MM': {omzet, laba} } — null = RPC belum ada
   const [openMonth, setOpenMonth] = useState(null); // {bulan, saldoAwal, masuk, keluar, sisa}
   const [storeName, setStoreName] = useState("");
   const nowKey = new Date().toLocaleDateString("en-CA").slice(0, 7); // YYYY-MM lokal
@@ -45,6 +46,12 @@ export default function JournalPage() {
         .order("created_at", { ascending: false }).order("id", { ascending: true })
     );
     setRows(data);
+    const { data: lb, error: lbErr } = await supabase.rpc("store_laba_bulanan");
+    if (!lbErr && Array.isArray(lb)) {
+      const m = {};
+      lb.forEach((r) => { m[r.bulan] = { omzet: Number(r.omzet) || 0, laba: Number(r.laba) || 0 }; });
+      setLaba(m);
+    } else setLaba(null);
   }
   useEffect(() => {
     load();
@@ -97,12 +104,14 @@ export default function JournalPage() {
       const saldoAwal = running;
       const sisa = saldoAwal + v.masuk - v.keluar;
       running = sisa;
-      list.push({ bulan, saldoAwal, masuk: v.masuk, keluar: v.keluar, sisa, kosong: !perMonth[bulan] });
+      list.push({ bulan, saldoAwal, masuk: v.masuk, keluar: v.keluar, sisa, kosong: !perMonth[bulan], laba: laba?.[bulan]?.laba ?? 0 });
     }
     return list.reverse();
-  }, [perMonth, year, nowKey]);
+  }, [perMonth, year, nowKey, laba]);
   const yearMasuk = monthly.reduce((s, m) => s + m.masuk, 0);
   const yearKeluar = monthly.reduce((s, m) => s + m.keluar, 0);
+  const yearLaba = monthly.reduce((s, m) => s + (m.laba || 0), 0);
+  const totalLaba = laba ? Object.values(laba).reduce((s, v) => s + v.laba, 0) : 0;
 
   // Riwayat Kas: 1 bulan + filter jenis & kategori.
   const histKategoriOpts = useMemo(() => {
@@ -200,11 +209,13 @@ export default function JournalPage() {
     <div>
       <h1 className="mb-4 text-lg font-extrabold">Jurnal Kas</h1>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi c="#1B6FEB" label="Saldo Kas" value={rupiah(saldo)} />
         <Kpi c="#22C55E" label="Uang Masuk" value={rupiah(totalMasuk)} />
         <Kpi c="#EF4444" label="Uang Keluar" value={rupiah(totalKeluar)} />
+        <Kpi c="#0EA5E9" label="Laba (Omzet − HPP)" value={laba ? rupiah(totalLaba) : "—"} />
       </div>
+      {laba === null && <p className="mt-2 text-xs text-ink-soft">Laba muncul setelah migration_v33_laba_bulanan.sql dijalankan.</p>}
 
       {/* Buku kas per bulan (saldo berjalan) */}
       <div className="mb-2 mt-5 flex flex-wrap items-center justify-between gap-2">
@@ -225,6 +236,7 @@ export default function JournalPage() {
               <th className="py-2 pr-2 text-right font-semibold">Pemasukan</th>
               <th className="py-2 pr-2 text-right font-semibold">Pengeluaran</th>
               <th className="py-2 pr-2 text-right font-semibold">Sisa Saldo</th>
+              <th className="py-2 pr-2 text-right font-semibold">Laba (Omzet − HPP)</th>
               <th className="py-2 pr-2"></th>
             </tr>
           </thead>
@@ -237,6 +249,7 @@ export default function JournalPage() {
                 <td className="py-2 pr-2 text-right text-success">+{rupiah(m.masuk)}</td>
                 <td className="py-2 pr-2 text-right text-danger">−{rupiah(m.keluar)}</td>
                 <td className={`py-2 pr-2 text-right font-bold ${m.sisa >= 0 ? "text-ink" : "text-danger"}`}>{rupiah(m.sisa)}</td>
+                <td className={`py-2 pr-2 text-right font-semibold ${m.laba < 0 ? "text-danger" : "text-[#0E7490]"}`}>{laba ? rupiah(m.laba) : "—"}</td>
                 <td className="py-2 pr-2 text-right text-primary">›</td>
               </tr>
             ))}
@@ -248,12 +261,13 @@ export default function JournalPage() {
               <td className="py-2 pr-2 text-right text-success">+{rupiah(yearMasuk)}</td>
               <td className="py-2 pr-2 text-right text-danger">−{rupiah(yearKeluar)}</td>
               <td className={`py-2 pr-2 text-right ${(monthly[0]?.sisa ?? 0) >= 0 ? "text-ink" : "text-danger"}`}>{rupiah(monthly[0]?.sisa ?? 0)}</td>
+              <td className="py-2 pr-2 text-right text-[#0E7490]">{laba ? rupiah(yearLaba) : "—"}</td>
               <td></td>
             </tr>
           </tfoot>
         </table>
       </div>
-      <p className="mt-2 text-xs text-ink-soft">Saldo awal tahun = akumulasi kas dari tahun-tahun sebelumnya. Klik baris bulan untuk melihat seluruh transaksi & mengekspor ke PDF.</p>
+      <p className="mt-2 text-xs text-ink-soft">Saldo awal tahun = akumulasi kas dari tahun-tahun sebelumnya. Laba = omzet penjualan selesai − HPP pada bulan itu. Klik baris bulan untuk melihat seluruh transaksi & mengekspor ke PDF.</p>
 
       <div className="card mt-4 p-4">
         <h2 className="mb-3 font-bold">Catat Transaksi Kas</h2>
@@ -445,11 +459,12 @@ function MonthStatement({ m, storeName, txs, onClose }) {
             <h2 className="text-lg font-extrabold">Buku Kas — {monthLabel(m.bulan)}</h2>
             <button onClick={onClose} className="text-ink-soft">✕</button>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
             <SumCell label="Saldo Awal" value={rupiah(m.saldoAwal)} />
             <SumCell label="Pemasukan" value={`+${rupiah(m.masuk)}`} cls="text-success" />
             <SumCell label="Pengeluaran" value={`−${rupiah(m.keluar)}`} cls="text-danger" />
             <SumCell label="Sisa Saldo" value={rupiah(m.sisa)} cls="text-ink" />
+            <SumCell label="Laba (Omzet − HPP)" value={rupiah(m.laba || 0)} cls="text-[#0E7490]" />
           </div>
         </div>
 
