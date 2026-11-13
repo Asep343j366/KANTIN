@@ -23,6 +23,7 @@ const icons = {
   area: "M3 12h4v8H3zM10 6h4v14h-4zM17 3h4v17h-4z",
   user: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M20 8v6M23 11h-6",
   setting: "M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.5 2h-5l-.3 2.9a7 7 0 00-1.7 1l-2.4-1-2 3.4L2.1 11a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.3 2.9h5l.3-2.9a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z",
+  promo: "M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01",
   musik: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z",
 };
 
@@ -31,6 +32,7 @@ const links = [
   { href: "/admin", label: "Transaksi", icon: "transaksi" },
   { href: "/admin/pending", label: "Menunggu", icon: "menunggu" },
   { href: "/admin/products", label: "Produk", icon: "produk" },
+  { href: "/admin/promo", label: "Promo", icon: "promo" },
   { href: "/admin/inventory", label: "Inventory", icon: "inventory" },
   { href: "/admin/reports", label: "Laporan", icon: "laporan" },
   { href: "/admin/journal", label: "Jurnal", icon: "jurnal" },

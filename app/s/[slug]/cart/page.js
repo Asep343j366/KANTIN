@@ -23,6 +23,7 @@ export default function CartPage() {
 
   const total = cartTotal(items);
   const count = cartCount(items);
+  const hemat = items.reduce((s, i) => s + Math.max(0, ((i.harga_normal || i.harga) - i.harga) * i.qty), 0);
 
   function remove(idx) {
     setLeaving(idx);
@@ -72,9 +73,18 @@ export default function CartPage() {
                 <h3 className="line-clamp-2 text-sm font-bold text-[#14213d]">{it.nama}</h3>
                 <button onClick={() => remove(idx)} className="zk-press text-[#b4bccd]" aria-label="Hapus">{Icon.trash(17)}</button>
               </div>
+              {it.bundle && (
+                <p className="text-[11px] leading-snug text-[#6b7591]">
+                  <span className="mr-1 rounded bg-[#0f2a5c] px-1 py-px text-[10px] font-bold text-[#ffb36b]">PAKET</span>
+                  {(it.components || []).map((c) => `${c.qty}× ${c.nama}`).join(" + ")}
+                </p>
+              )}
               {it.note && <p className="text-xs text-[#c2560f]">{it.note}</p>}
               <div className="flex items-center justify-between">
-                <span className="text-sm font-extrabold text-[#0f2a5c]">{rupiah(it.harga * it.qty)}</span>
+                <span className="flex flex-col leading-tight">
+                  {it.harga_normal > it.harga && <span className="text-[11px] text-[#9aa3b8] line-through">{rupiah(it.harga_normal * it.qty)}</span>}
+                  <span className={`text-sm font-extrabold ${it.harga_normal > it.harga ? "text-[#e8561a]" : "text-[#0f2a5c]"}`}>{rupiah(it.harga * it.qty)}</span>
+                </span>
                 <div className="flex items-center gap-1 rounded-xl bg-[#f2f4f9] p-0.5">
                   <button onClick={() => (it.qty > 1 ? updateQty(idx, it.qty - 1) : remove(idx))}
                     className="zk-press grid h-7 w-7 place-items-center rounded-lg bg-white text-[#0f2a5c] shadow-sm" aria-label="Kurangi">{Icon.minus(13)}</button>
@@ -96,7 +106,8 @@ export default function CartPage() {
       <div className="fixed inset-x-0 bottom-[74px] z-30">
         <div className="container-app">
           <div className="zk-card zk-up p-4 shadow-[0_-4px_24px_rgba(15,42,92,.12)]">
-            <div className="flex justify-between text-sm"><span className="text-[#6b7591]">Subtotal ({count} item)</span><span className="font-semibold">{rupiah(total)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-[#6b7591]">Subtotal ({count} item)</span><span className="font-semibold">{rupiah(total + hemat)}</span></div>
+            {hemat > 0 && <div className="mt-1 flex justify-between text-sm"><span className="text-[#6b7591]">Hemat promo</span><span className="font-semibold text-emerald-600">−{rupiah(hemat)}</span></div>}
             <div className="mt-1 flex justify-between text-sm"><span className="text-[#6b7591]">Biaya layanan</span><span className="font-semibold text-emerald-600">Gratis</span></div>
             <div className="my-2.5 border-t border-dashed border-[#d9dfec]" />
             <div className="flex items-center gap-3">

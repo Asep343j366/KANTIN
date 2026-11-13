@@ -4,16 +4,21 @@ import { rupiah } from "@/lib/format";
 import { addToCart, getQtyById, decById } from "@/lib/cart";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { flyToCart, tintFor, Icon } from "@/components/store/fx";
+import { discountedPrice, pctOff } from "@/lib/promo";
 
 // Kartu menu premium. Ketuk kartu → onOpen(product) (lembar detail).
 // variant "rail" = kartu ramping untuk baris Terlaris (geser ke samping).
-export default function ProductCard({ product, demo, onOpen, rank, variant = "grid", style }) {
+export default function ProductCard({ product, demo, onOpen, rank, variant = "grid", style, promo }) {
   const habis = !product.tersedia || product.stok <= 0;
   const disabled = habis || demo;
   const [qty, setQty] = useState(0);
   const [fav, setFav] = useState(false);
   const [imgOk, setImgOk] = useState(false);
   const addRef = useRef(null);
+  // Promo diskon aktif → harga efektif + label potongan.
+  const harga = promo ? discountedPrice(product.harga, promo) : product.harga;
+  const diskon = promo && harga < product.harga;
+  const offLabel = diskon ? (promo.diskon_tipe === "nominal" ? `-${rupiah(product.harga - harga).replace("Rp", "Rp")}` : `-${pctOff(product.harga, harga)}%`) : "";
 
   useEffect(() => {
     const updCart = () => setQty(getQtyById(product.id));
@@ -30,7 +35,7 @@ export default function ProductCard({ product, demo, onOpen, rank, variant = "gr
   function add(e) {
     e.stopPropagation();
     if (disabled) return;
-    addToCart(product, 1);
+    addToCart(product, 1, "", diskon ? { id: promo.id, harga } : null);
     flyToCart(addRef.current || e.currentTarget);
   }
   function dec(e) { e.stopPropagation(); decById(product.id); }
@@ -64,10 +69,13 @@ export default function ProductCard({ product, demo, onOpen, rank, variant = "gr
             {Icon.flame(11)}#{rank}
           </span>
         )}
+        {diskon && !habis && (
+          <span className={`absolute left-1.5 rounded-lg bg-gradient-to-br from-[#ff9447] to-[#e8561a] px-1.5 py-0.5 text-[11px] font-extrabold text-white shadow ${rank ? "top-8" : "top-1.5"}`}>{offLabel}</span>
+        )}
         {habis && (
           <span className="absolute inset-x-0 bottom-0 bg-[#14213d]/80 py-1 text-center text-[11px] font-bold text-white">Habis</span>
         )}
-        {sedikit && !rank && (
+        {sedikit && !rank && !diskon && (
           <span className="absolute left-1.5 top-1.5 rounded-lg bg-white/95 px-1.5 py-0.5 text-[11px] font-bold text-[#a35a0a] shadow">Sisa {product.stok}</span>
         )}
 
@@ -82,7 +90,14 @@ export default function ProductCard({ product, demo, onOpen, rank, variant = "gr
       <div className="px-1 pb-0.5 pt-2">
         <h3 className="line-clamp-1 text-[13px] font-bold text-[#14213d]">{product.nama}</h3>
         <div className="mt-1 flex items-center justify-between gap-1">
-          <span className="text-[13px] font-extrabold text-[#0f2a5c]">{rupiah(product.harga)}</span>
+          {diskon ? (
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="text-[10px] text-[#9aa3b8] line-through">{rupiah(product.harga)}</span>
+              <span className="text-[13px] font-extrabold text-[#e8561a]">{rupiah(harga)}</span>
+            </span>
+          ) : (
+            <span className="text-[13px] font-extrabold text-[#0f2a5c]">{rupiah(product.harga)}</span>
+          )}
           {qty > 0 ? (
             <div className="zk-fade flex items-center gap-1 rounded-[10px] bg-[#0f2a5c] p-0.5 text-white" onClick={(e) => e.stopPropagation()}>
               <button onClick={dec} className="zk-press grid h-6 w-6 place-items-center rounded-lg" aria-label="Kurangi">{Icon.minus(13)}</button>

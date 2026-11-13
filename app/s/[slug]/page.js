@@ -12,6 +12,9 @@ import { useSlug, storePath } from "@/lib/slug";
 import { loadBestSellers } from "@/components/store/bestSellers";
 import { CatIcon, Icon, greeting, openStatus, useBump, RollingRupiah } from "@/components/store/fx";
 import { useStore } from "./StoreProvider";
+import PromoCarousel from "@/components/store/PromoCarousel";
+import BundleSheet from "@/components/store/BundleSheet";
+import { loadActivePromos } from "@/lib/promo";
 import { logoOf } from "@/lib/storeLogo";
 
 export default function CatalogPage() {
@@ -26,6 +29,8 @@ export default function CatalogPage() {
   const [favs, setFavs] = useState([]);
   const [best, setBest] = useState({});
   const [open, setOpen] = useState(null); // produk yang dibuka di lembar detail
+  const [promo, setPromo] = useState({ list: [], diskonByProduct: {}, usage: {} });
+  const [bundle, setBundle] = useState(null); // promo bundling yang dibuka
   const [now, setNow] = useState(null);
 
   useEffect(() => { setNow(new Date()); }, []);
@@ -52,6 +57,8 @@ export default function CatalogPage() {
     })();
     // Terlaris: dimuat terpisah agar tak menahan tampilan menu.
     loadBestSellers(store.id).then(setBest).catch(() => {});
+    // Promo aktif (tabel belum ada / gagal → kosong, toko tetap normal).
+    loadActivePromos(store.id).then(setPromo).catch(() => {});
   }, [store?.id]);
 
   const available = (p) => p.tersedia && p.stok > 0;
@@ -81,6 +88,16 @@ export default function CatalogPage() {
     if (!open) return [];
     return products.filter((p) => p.id !== open.id && available(p) && p.category_id === open.category_id).slice(0, 2);
   }, [open, products]);
+
+  const prodMap = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products]);
+  // Banner hanya untuk promo yang menunya masih ada di toko.
+  const banners = useMemo(() => promo.list.filter((p) => (p.items || []).some((it) => prodMap[it.product_id])), [promo.list, prodMap]);
+  function openPromo(p) {
+    if (p.jenis === "bundling") return setBundle(p);
+    const first = (p.items || []).map((it) => prodMap[it.product_id]).find((x) => x && x.tersedia && x.stok > 0)
+      || prodMap[p.items?.[0]?.product_id];
+    if (first) setOpen(first);
+  }
 
   const status = openStatus(settings?.jam_operasional, now || undefined);
   const nama = settings?.nama_kantin || store?.nama || "Kantin Digital";
@@ -125,6 +142,9 @@ export default function CatalogPage() {
         </label>
       </div>
 
+      {/* BANNER PROMO */}
+      {!q && <PromoCarousel promos={banners} prodMap={prodMap} usage={promo.usage} onOpen={openPromo} />}
+
       {/* KATEGORI (menempel saat scroll) */}
       <div className="sticky top-0 z-30 mt-3 bg-[#f2f4f9]/90 backdrop-blur">
         <div className="container-app no-scrollbar flex gap-3 overflow-x-auto py-3">
@@ -147,7 +167,7 @@ export default function CatalogPage() {
           </div>
           <div className="no-scrollbar mx-auto flex max-w-md snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 pt-1">
             {ranking.map((p, i) => (
-              <ProductCard key={p.id} product={p} demo={store?.is_demo} onOpen={setOpen} rank={i + 1}
+              <ProductCard key={p.id} product={p} demo={store?.is_demo} onOpen={setOpen} rank={i + 1} promo={promo.diskonByProduct[p.id]}
                 variant="rail" style={{ animationDelay: `${i * 0.05}s` }} />
             ))}
           </div>
@@ -171,7 +191,7 @@ export default function CatalogPage() {
         ) : (
           <div key={cat + q} className="grid grid-cols-2 gap-3">
             {filtered.map((p, i) => (
-              <ProductCard key={p.id} product={p} demo={store?.is_demo} onOpen={setOpen} rank={rankOf[p.id]}
+              <ProductCard key={p.id} product={p} demo={store?.is_demo} onOpen={setOpen} rank={rankOf[p.id]} promo={promo.diskonByProduct[p.id]}
                 style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }} />
             ))}
           </div>
@@ -180,8 +200,12 @@ export default function CatalogPage() {
 
       <CartBar />
 
+      {bundle && (
+        <BundleSheet promo={bundle} prodMap={prodMap} usage={promo.usage} demo={store?.is_demo} onClose={() => setBundle(null)} />
+      )}
+
       {open && (
-        <ProductSheet product={open} rank={rankOf[open.id]} demo={store?.is_demo} alternatives={alternatives}
+        <ProductSheet product={open} rank={rankOf[open.id]} demo={store?.is_demo} alternatives={alternatives} promo={promo.diskonByProduct[open.id]}
           onClose={() => setOpen(null)} onPick={(p) => setOpen(p)} />
       )}
     </main>

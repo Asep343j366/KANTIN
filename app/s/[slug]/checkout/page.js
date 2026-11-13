@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
-import { getCart, cartTotal, clearCart } from "@/lib/cart";
+import { getCart, cartTotal, clearCart, setCart } from "@/lib/cart";
+import { loadActivePromos, discountedPrice, allocateBundle } from "@/lib/promo";
 import { compressImage } from "@/lib/compressImage";
 import { rupiah, orderCode } from "@/lib/format";
 import { useSlug, storePath } from "@/lib/slug";
@@ -106,6 +107,49 @@ export default function CheckoutPage() {
     if (!/^0[0-9]{8,13}$/.test(hp.trim())) return setError("Nomor HP tidak valid (contoh: 08123456789).");
     setProcessing(true);
     try {
+      // 0) Validasi ulang harga promo (promo bisa berakhir/berubah sejak masuk keranjang).
+      const hasPromo = items.some((i) => i.promo_id || i.bundle);
+      let fixed = items;
+      if (hasPromo) {
+        const { list } = await loadActivePromos(store.id);
+        const byId = Object.fromEntries(list.map((p) => [p.id, p]));
+        const ended = [];
+        fixed = items.flatMap((i) => {
+          if (i.bundle) {
+            const p = byId[i.promo_id];
+            if (!p) { ended.push(i.nama); return []; }
+            return [{ ...i, harga: p.harga_paket }];
+          }
+          if (i.promo_id) {
+            const p = byId[i.promo_id];
+            const still = p && p.jenis === "diskon" && (p.items || []).some((x) => x.product_id === i.id);
+            const harga = still ? discountedPrice(i.harga_normal ?? i.harga, p) : (i.harga_normal ?? i.harga);
+            return [{ ...i, harga, promo_id: still ? i.promo_id : null }];
+          }
+          return [i];
+        });
+        const changed = ended.length || fixed.some((x, k) => x.harga !== items[k]?.harga);
+        if (changed) {
+          setCart(fixed);
+          setItems(fixed);
+          setProcessing(false);
+          return setError(ended.length
+            ? `Promo ${ended.join(", ")} sudah berakhir dan dihapus dari keranjang. Cek lagi totalnya, lalu tekan Bayar.`
+            : "Harga promo sudah berubah. Total sudah diperbarui — cek lagi, lalu tekan Bayar.");
+        }
+      }
+
+      // Rincian item: paket bundling dipecah per menu (harga proporsional) agar
+      // stok tiap menu berkurang & laporan per produk tetap akurat.
+      const lines = fixed.flatMap((i) => {
+        if (!i.bundle) return [{ product_id: i.id, nama_produk: i.nama, harga: i.harga, jumlah: i.qty, catatan: i.note || null, promo_id: i.promo_id || null }];
+        return allocateBundle(i.harga, i.components || []).map((c) => ({
+          product_id: c.product_id, nama_produk: c.nama, harga: c.harga, jumlah: c.qty * i.qty,
+          catatan: `Paket: ${i.nama}`, promo_id: i.promo_id,
+        }));
+      });
+      const orderTotal = lines.reduce((s, l) => s + l.harga * l.jumlah, 0);
+
       const code = orderCode();
 
       // 1) Buat order (menunggu pembayaran) + item
@@ -115,21 +159,17 @@ export default function CheckoutPage() {
         nama_pelanggan: nama.trim(),
         no_hp: hp.trim(),
         catatan: catatan.trim() || null,
-        total,
+        total: orderTotal,
         status: "menunggu_pembayaran",
       }).select().single();
       if (oErr) throw oErr;
 
-      const rows = items.map((i) => ({
-        store_id: store.id,
-        order_id: order.id,
-        product_id: i.id,
-        nama_produk: i.nama,
-        harga: i.harga,
-        jumlah: i.qty,
-        catatan: i.note || null,
-      }));
-      const { error: iErr } = await supabase.from("order_items").insert(rows);
+      const rows = lines.map((l) => ({ store_id: store.id, order_id: order.id, ...l }));
+      let { error: iErr } = await supabase.from("order_items").insert(rows);
+      // Kolom promo_id belum ada (migrasi v27 belum jalan) → simpan tanpa penanda promo.
+      if (iErr && /promo_id/i.test(iErr.message || "")) {
+        ({ error: iErr } = await supabase.from("order_items").insert(rows.map(({ promo_id, ...r }) => r)));
+      }
       if (iErr) throw iErr;
 
       // 2) Minta QRIS ke server (server → Casaku)
@@ -150,7 +190,7 @@ export default function CheckoutPage() {
 
       setKode(code);
       setOrderId(order.id);
-      setAmount(pay.amount || total);
+      setAmount(pay.amount || orderTotal);
       clearCart();
       try {
         localStorage.setItem("kantin_last_customer", JSON.stringify({ nama: nama.trim(), hp: hp.trim() }));

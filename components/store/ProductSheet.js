@@ -6,8 +6,9 @@ import { rupiah } from "@/lib/format";
 import { addToCart } from "@/lib/cart";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { flyToCart, tintFor, Icon, RollingRupiah } from "@/components/store/fx";
+import { discountedPrice, pctOff } from "@/lib/promo";
 
-export default function ProductSheet({ product, rank, demo, alternatives = [], onClose, onPick }) {
+export default function ProductSheet({ product, rank, demo, alternatives = [], onClose, onPick, promo }) {
   const [qty, setQty] = useState(1);
   const [fav, setFav] = useState(false);
   const [drag, setDrag] = useState(0);
@@ -41,10 +42,12 @@ export default function ProductSheet({ product, rank, demo, alternatives = [], o
   const disabled = habis || demo;
   const sedikit = !habis && product.stok <= 5;
   const maxQty = Math.max(1, product.stok || 1);
+  const harga = promo ? discountedPrice(product.harga, promo) : product.harga;
+  const diskon = promo && harga < product.harga;
 
   function add() {
     if (disabled) return;
-    addToCart(product, qty);
+    addToCart(product, qty, "", diskon ? { id: promo.id, harga } : null);
     flyToCart(ctaRef.current);
     close();
   }
@@ -95,8 +98,20 @@ export default function ProductSheet({ product, rank, demo, alternatives = [], o
           <div className="zk-up mt-4" style={{ animationDelay: ".05s" }}>
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-xl font-extrabold leading-tight text-[#14213d]">{product.nama}</h2>
-              <span className={`shrink-0 text-xl font-extrabold ${habis ? "text-[#9aa3b8]" : "text-[#0f2a5c]"}`}>{rupiah(product.harga)}</span>
+              {diskon && !habis ? (
+                <span className="shrink-0 text-right leading-tight">
+                  <span className="block text-xs text-[#9aa3b8] line-through">{rupiah(product.harga)}</span>
+                  <span className="text-xl font-extrabold text-[#e8561a]">{rupiah(harga)}</span>
+                </span>
+              ) : (
+                <span className={`shrink-0 text-xl font-extrabold ${habis ? "text-[#9aa3b8]" : "text-[#0f2a5c]"}`}>{rupiah(product.harga)}</span>
+              )}
             </div>
+            {diskon && !habis && (
+              <p className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#fff1e6] px-2 py-1 text-xs font-bold text-[#c2560f]">
+                🏷️ {promo.nama} · hemat {pctOff(product.harga, harga)}% s/d {promo.berakhir}
+              </p>
+            )}
             {product.deskripsi && <p className="mt-1.5 text-sm leading-relaxed text-[#6b7591]">{product.deskripsi}</p>}
             {sedikit && (
               <p className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#fff3e0] px-2 py-1 text-xs font-bold text-[#a35a0a]">
@@ -137,7 +152,7 @@ export default function ProductSheet({ product, rank, demo, alternatives = [], o
               </div>
               <button ref={ctaRef} onClick={add} disabled={demo}
                 className="zk-cta zk-press flex-1 rounded-2xl py-3.5 text-sm font-extrabold disabled:opacity-50">
-                Tambah · <RollingRupiah value={product.harga * qty} />
+                Tambah · <RollingRupiah value={harga * qty} />
               </button>
             </div>
           )}
