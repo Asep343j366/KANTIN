@@ -34,7 +34,7 @@ export default function PromoBanner({ promo, prodMap = {}, sisa = null, classNam
 
   return (
     <div onClick={onClick} role={onClick ? "button" : undefined}
-      className={`relative h-[136px] overflow-hidden rounded-[20px] p-3.5 shadow-[0_10px_24px_rgba(15,42,92,.22)] ${onClick ? "cursor-pointer" : ""} ${className}`}
+      className={`relative h-[128px] overflow-hidden rounded-[20px] p-3.5 shadow-[0_10px_24px_rgba(15,42,92,.22)] ${onClick ? "cursor-pointer" : ""} ${className}`}
       style={{ background: t.bg, color: t.text }}>
       {/* dekorasi */}
       {t.deco === "circle" && <span className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full" style={{ background: aksen, opacity: 0.9 }} />}
@@ -44,7 +44,7 @@ export default function PromoBanner({ promo, prodMap = {}, sisa = null, classNam
       <div className="relative z-10 flex h-full flex-col" style={{ maxWidth: fotos.length > 1 ? "64%" : fotos.length ? "70%" : "100%" }}>
         <span className="self-start rounded-md px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide" style={{ background: aksen, color: textOnAksen }}>{badge}</span>
         <p className="mt-1 truncate pb-0.5 text-[17px] font-extrabold leading-[1.35]">{judul}</p>
-        <p className="line-clamp-2 text-[11px] leading-snug" style={{ color: t.sub }}>{sub}</p>
+        <p className="truncate text-[11px] leading-snug" style={{ color: t.sub }}>{sub}</p>
         <div className="mt-auto flex items-end justify-between gap-2">
           <div className="leading-tight">
             {oldPrice != null && <span className="mr-1 text-[11px] line-through" style={{ color: t.sub }}>{rupiah(oldPrice)}</span>}
