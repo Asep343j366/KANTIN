@@ -58,7 +58,6 @@ export default function StoreDashboardPage() {
 
   const p = d?.periode || {};
   const kas = d?.kas || {};
-  const labaKas = (Number(kas.masuk) || 0) - (Number(kas.keluar) || 0);
 
   return (
     <div>
@@ -134,7 +133,7 @@ export default function StoreDashboardPage() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Kpi c="#22C55E" label="Uang Masuk" value={rupiah(kas.masuk)} />
             <Kpi c="#EF4444" label="Uang Keluar" value={rupiah(kas.keluar)} />
-            <Kpi c={labaKas >= 0 ? "#14B8A6" : "#EF4444"} label="Laba (Masuk − Keluar)" value={rupiah(labaKas)} />
+            <Kpi c={Number(p.laba) >= 0 ? "#14B8A6" : "#EF4444"} label="Laba (Omzet − HPP)" value={rupiah(p.laba)} sub="penjualan pada periode ini" />
             <Kpi c="#1B6FEB" label="Saldo Kas" value={rupiah(d.saldo)} sub="sampai saat ini" />
           </div>
           <div className="card mt-3 table-scroll p-4">
@@ -166,7 +165,7 @@ export default function StoreDashboardPage() {
             </table>
           </div>
           <p className="mt-2 text-xs text-ink-soft">
-            {kas.count > 300 ? `Menampilkan 300 dari ${kas.count} catatan terbaru pada periode ini (total di kartu tetap dihitung penuh).` : `${kas.count || 0} catatan pada periode ini.`}
+            {kas.count > (d.jurnal || []).length ? `Menampilkan ${(d.jurnal || []).length} dari ${kas.count} catatan terbaru pada periode ini (total di kartu tetap dihitung penuh).` : `${kas.count || 0} catatan pada periode ini.`}
           </p>
         </div>
       )}
