@@ -10,7 +10,8 @@ const PAGE_SIZE = 10;
 const palette = ["#1B6FEB", "#22C55E", "#F59E0B", "#EF4444", "#A855F7", "#14B8A6", "#EC4899", "#6366F1"];
 
 function defaultDates() {
-  const end = new Date(); const start = new Date(); start.setDate(start.getDate() - 29);
+  // Default = bulan berjalan (tgl 1 s.d. hari ini).
+  const end = new Date(); const start = new Date(end.getFullYear(), end.getMonth(), 1);
   const loc = (d) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD lokal
   return { start: loc(start), end: loc(end) };
 }
