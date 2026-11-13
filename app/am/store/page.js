@@ -130,12 +130,18 @@ export default function StoreDashboardPage() {
 
           {/* Jurnal Kas (mengikuti rentang tanggal) */}
           <Section>💵 Jurnal Kas (read-only) · periode</Section>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Kpi c="#22C55E" label="Uang Masuk" value={rupiah(kas.masuk)} />
-            <Kpi c="#EF4444" label="Uang Keluar" value={rupiah(kas.keluar)} />
-            <Kpi c={Number(p.laba) >= 0 ? "#14B8A6" : "#EF4444"} label="Laba (Omzet − HPP)" value={rupiah(p.laba)} sub="penjualan pada periode ini" />
-            <Kpi c="#1B6FEB" label="Saldo Kas" value={rupiah(d.saldo)} sub="sampai saat ini" />
+          {/* Saldo Awal + Uang Masuk − Pengeluaran = Sisa Saldo (akhir periode) */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <Kpi c="#64748B" label="Saldo Awal" value={kas.saldo_awal == null ? "—" : rupiah(kas.saldo_awal)} sub={`sebelum ${start}`} />
+            <Kpi c="#22C55E" label="+ Uang Masuk" value={rupiah(kas.masuk)} />
+            <Kpi c="#EF4444" label="− Pengeluaran" value={rupiah(kas.keluar)} />
+            <Kpi c="#1B6FEB" label="= Sisa Saldo" sub={`per ${end}`}
+              value={kas.saldo_awal == null ? "—" : rupiah(Number(kas.saldo_awal) + Number(kas.masuk || 0) - Number(kas.keluar || 0))} />
+            <Kpi c={Number(p.laba) >= 0 ? "#14B8A6" : "#EF4444"} label="Laba (Omzet − HPP)" value={rupiah(p.laba)} sub="penjualan periode ini" />
           </div>
+          {kas.saldo_awal == null && (
+            <p className="mt-2 text-xs text-ink-soft">Saldo awal muncul setelah migration_v32 dijalankan.</p>
+          )}
           <div className="card mt-3 table-scroll p-4">
             <table className="w-full text-sm">
               <thead>
