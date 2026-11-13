@@ -8,10 +8,10 @@ import { metaIcons } from "@/lib/appIconsServer";
 export async function generateMetadata() {
   const { name, logo } = await getBrandServer();
   return {
-    title: `${name} Admin Portal`,
+    title: `Admin ${name}`,
     description: "Panel admin kantin: transaksi, produk, inventory, jurnal, laporan.",
     manifest: "/admin.webmanifest",
-    appleWebApp: { capable: true, statusBarStyle: "default", title: `${name} Admin Portal` },
+    appleWebApp: { capable: true, statusBarStyle: "default", title: `Admin ${name}` },
     icons: metaIcons(logo, { icon: "/icons/admin-icon-192.png", favicon: "/icons/admin-icon-192.png", apple: "/icons/admin-apple-touch.png" }),
   };
 }

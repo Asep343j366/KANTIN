@@ -9,8 +9,8 @@ export async function GET() {
   const brand = await getBrandServer();
   const manifest = {
     id: "/admin",
-    name: `${brand.name} Admin`,
-    short_name: `${brand.name} Admin`,
+    name: `Admin ${brand.name}`,
+    short_name: `Admin ${brand.name}`.slice(0, 20),
     description: "Panel admin kantin: transaksi, produk, inventory, jurnal, laporan.",
     start_url: "/admin",
     scope: "/admin",

@@ -23,11 +23,14 @@ export async function GET(request) {
   } catch {}
   if (!logo) return Response.redirect(`${origin}/icons/icon-512.png`, 302);
 
-  const inner = Math.round(size * 0.72); // zona aman ikon maskable (±80%)
+  // bg=0 → latar transparan, logo penuh (ikon "any" berukuran PERSIS, satu origin);
+  // default → latar navy + zona aman (maskable / apple-touch-icon).
+  const transparent = searchParams.get("bg") === "0";
+  const inner = Math.round(size * (transparent ? 1 : 0.72));
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-        background: "linear-gradient(150deg,#16397a 0%,#0f2a5c 55%,#0a1d42 100%)" }}>
+        background: transparent ? "transparent" : "linear-gradient(150deg,#16397a 0%,#0f2a5c 55%,#0a1d42 100%)" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} width={inner} height={inner} style={{ objectFit: "contain" }} alt="" />
       </div>
