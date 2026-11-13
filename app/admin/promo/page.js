@@ -225,7 +225,8 @@ function PromoEditor({ initial, products, prodMap, storeId, onCancel, onSaved })
                   const p = prodMap[it.product_id];
                   if (!p) return null;
                   return (
-                    <div key={it.product_id} className="flex items-center gap-2 rounded-xl bg-surface px-2.5 py-1.5 text-sm">
+                    <div key={it.product_id} className="flex items-center gap-2 rounded-xl bg-surface px-2 py-1.5 text-sm">
+                      <Thumb src={p.foto_url} size="h-9 w-9" />
                       <span className="min-w-0 flex-1 truncate font-semibold">{p.nama}</span>
                       {f.jenis === "bundling" ? (
                         <span className="flex items-center gap-1">
@@ -246,8 +247,9 @@ function PromoEditor({ initial, products, prodMap, storeId, onCancel, onSaved })
             <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-gray-100">
               {list.map((p) => (
                 <button key={p.id} onClick={() => toggleItem(p)}
-                  className={`flex w-full items-center justify-between border-b border-gray-50 px-3 py-2 text-left text-sm last:border-0 ${chosen.has(p.id) ? "bg-primary-light" : "hover:bg-surface"}`}>
-                  <span className="truncate">{chosen.has(p.id) ? "✓ " : "+ "}{p.nama}</span>
+                  className={`flex w-full items-center gap-2.5 border-b border-gray-50 px-2.5 py-1.5 text-left text-sm last:border-0 ${chosen.has(p.id) ? "bg-primary-light" : "hover:bg-surface"}`}>
+                  <Thumb src={p.foto_url} size="h-8 w-8" />
+                  <span className="min-w-0 flex-1 truncate">{chosen.has(p.id) ? "✓ " : "+ "}{p.nama}</span>
                   <span className="shrink-0 text-xs text-ink-soft">{rupiah(p.harga)}</span>
                 </button>
               ))}
@@ -310,6 +312,15 @@ function PromoEditor({ initial, products, prodMap, storeId, onCancel, onSaved })
         </div>
       </div>
     </div>
+  );
+}
+
+function Thumb({ src, size }) {
+  return (
+    <span className={`${size} shrink-0 overflow-hidden rounded-lg bg-gray-100`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
+    </span>
   );
 }
 

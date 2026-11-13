@@ -34,17 +34,17 @@ export default function PromoBanner({ promo, prodMap = {}, sisa = null, classNam
 
   return (
     <div onClick={onClick} role={onClick ? "button" : undefined}
-      className={`relative h-[124px] overflow-hidden rounded-[20px] p-3.5 shadow-[0_10px_24px_rgba(15,42,92,.22)] ${onClick ? "cursor-pointer" : ""} ${className}`}
+      className={`relative h-[136px] overflow-hidden rounded-[20px] p-3.5 shadow-[0_10px_24px_rgba(15,42,92,.22)] ${onClick ? "cursor-pointer" : ""} ${className}`}
       style={{ background: t.bg, color: t.text }}>
       {/* dekorasi */}
       {t.deco === "circle" && <span className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full" style={{ background: aksen, opacity: 0.9 }} />}
       {t.deco === "stripe" && <span className="pointer-events-none absolute -right-6 top-0 h-full w-24 -skew-x-12" style={{ background: aksen, opacity: 0.85 }} />}
       {t.deco === "dots" && <span className="pointer-events-none absolute right-2 top-2 h-20 w-20 opacity-50" style={{ backgroundImage: `radial-gradient(${aksen} 2.5px, transparent 3px)`, backgroundSize: "12px 12px" }} />}
 
-      <div className="relative z-10 flex h-full flex-col" style={{ maxWidth: fotos.length ? "62%" : "100%" }}>
+      <div className="relative z-10 flex h-full flex-col" style={{ maxWidth: fotos.length > 1 ? "64%" : fotos.length ? "70%" : "100%" }}>
         <span className="self-start rounded-md px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide" style={{ background: aksen, color: textOnAksen }}>{badge}</span>
-        <p className="mt-1.5 line-clamp-1 text-[17px] font-extrabold leading-tight">{judul}</p>
-        <p className="line-clamp-1 text-[11px]" style={{ color: t.sub }}>{sub}</p>
+        <p className="mt-1 truncate pb-0.5 text-[17px] font-extrabold leading-[1.35]">{judul}</p>
+        <p className="line-clamp-2 text-[11px] leading-snug" style={{ color: t.sub }}>{sub}</p>
         <div className="mt-auto flex items-end justify-between gap-2">
           <div className="leading-tight">
             {oldPrice != null && <span className="mr-1 text-[11px] line-through" style={{ color: t.sub }}>{rupiah(oldPrice)}</span>}
@@ -57,11 +57,11 @@ export default function PromoBanner({ promo, prodMap = {}, sisa = null, classNam
       </div>
 
       {fotos.length > 0 && (
-        <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
+        <div className="absolute bottom-3.5 right-3 z-10 flex">
           {fotos.map((f, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={f} alt="" className="h-[58px] w-[58px] rounded-xl border-2 border-white/80 bg-white object-cover shadow-lg"
-              style={{ transform: fotos.length > 1 ? `rotate(${i ? 6 : -6}deg)` : undefined }} />
+            <img key={i} src={f} alt="" className={`h-[56px] w-[56px] rounded-xl border-2 border-white/90 bg-white object-cover shadow-lg ${i ? "-ml-4" : ""}`}
+              style={{ transform: fotos.length > 1 ? `rotate(${i ? 7 : -7}deg)` : undefined, zIndex: i ? 2 : 1 }} />
           ))}
         </div>
       )}
