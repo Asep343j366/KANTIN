@@ -31,7 +31,7 @@ export async function GET(request) {
   const db = supabaseAdmin();
   const { data: orders } = await db
     .from("subscription_orders")
-    .select("id, store_id, amount, amount_charged, durasi_hari, status, payment_ref, created_at, stores(nama, kode_site)")
+    .select("id, store_id, amount, amount_charged, durasi_hari, status, payment_ref, created_at, stores(*)")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(100);

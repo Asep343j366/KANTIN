@@ -61,7 +61,7 @@ function StatusCard({ store }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold">{s.nama}</p>
-          <p className="text-xs text-ink-soft">Site {s.kode_site}</p>
+          <p className="text-xs text-ink-soft">Site {s.kode_site}{s.nama_store ? ` · ${s.nama_store}` : ""}</p>
         </div>
         <span className={`badge ${badge}`}>{s.status || "-"}</span>
       </div>
@@ -204,7 +204,7 @@ function PlatformPending() {
             <div key={o.id} className="rounded-xl border border-gray-100 p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold">{o.stores?.nama || "—"} <span className="text-[11px] text-ink-soft">({o.stores?.kode_site || "-"})</span></p>
+                  <p className="text-sm font-semibold">{o.stores?.nama || "—"} <span className="text-[11px] text-ink-soft">({o.stores?.kode_site || "-"}{o.stores?.nama_store ? ` · ${o.stores.nama_store}` : ""})</span></p>
                   <p className="text-[11px] text-ink-soft">{rupiah(o.amount_charged || o.amount)} · {o.durasi_hari} hari · {fmtDateTime(o.created_at)}</p>
                   {o.payment_ref && <p className="text-[10px] text-ink-soft">Ref: {o.payment_ref}</p>}
                 </div>

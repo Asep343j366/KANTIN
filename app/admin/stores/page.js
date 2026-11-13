@@ -18,7 +18,7 @@ async function token() {
   return data.session?.access_token;
 }
 
-const empty = { kode_site: "", nama: "", owner_email: "", owner_password: "", trial_days: 0, is_demo: false };
+const empty = { kode_site: "", nama: "", nama_store: "", owner_email: "", owner_password: "", trial_days: 0, is_demo: false };
 
 export default function StoresPage() {
   const [allowed, setAllowed] = useState(null);
@@ -138,8 +138,9 @@ export default function StoresPage() {
         <h2 className="font-bold">Tambah Store Baru</h2>
         <div className="grid grid-cols-2 gap-3">
           <F label="Kode Site"><input className="input" value={f.kode_site} onChange={(e) => set("kode_site", e.target.value)} placeholder="Cth: A812" /></F>
-          <F label="Nama Store"><input className="input" value={f.nama} onChange={(e) => set("nama", e.target.value)} placeholder="Kantin ..." /></F>
+          <F label="Nama Kantin (tampil ke pembeli)"><input className="input" value={f.nama} onChange={(e) => set("nama", e.target.value)} placeholder="Kantin ..." /></F>
         </div>
+        <F label="Nama Store (sesuai kode site)"><input className="input" value={f.nama_store} onChange={(e) => set("nama_store", e.target.value)} placeholder="Cth: INFORMA BIG MALL SAMARINDA" /></F>
         <div className="grid grid-cols-2 gap-3">
           <F label="Email Owner"><input className="input" type="email" value={f.owner_email} onChange={(e) => set("owner_email", e.target.value)} /></F>
           <F label="Password Owner"><input className="input" value={f.owner_password} onChange={(e) => set("owner_password", e.target.value)} placeholder="min 6 karakter" /></F>
@@ -170,7 +171,8 @@ export default function StoresPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-semibold">{s.nama} {s.is_platform_admin && <span className="text-[10px] text-primary">(platform)</span>} {s.is_demo && <span className="badge bg-amber-100 text-amber-700">demo</span>}</p>
-                  <p className="text-xs text-ink-soft">Site {s.kode_site} · /s/{s.slug} · {s.owner_email || "—"}</p>
+                  <p className="text-xs font-semibold text-[#0F4575]">Site {s.kode_site} · {s.nama_store || <span className="font-normal italic text-ink-soft">nama store belum diisi</span>}</p>
+                  <p className="text-xs text-ink-soft">/s/{s.slug} · {s.owner_email || "—"}</p>
                   <p className="text-xs text-ink-soft">Aktif s/d: {until ? fmtDateTime(until.toISOString()) : "—"}</p>
                 </div>
                 <span className={`badge ${badge}`}>{s.status}</span>
@@ -189,6 +191,7 @@ export default function StoresPage() {
                   <button onClick={() => setResetFor(resetFor === s.id ? null : s.id)} className="rounded-lg bg-surface px-2 py-1 text-xs font-semibold">Reset PW Owner</button>
                 </div>
               )}
+              <NamaStoreEdit store={s} onSaved={load} />
               {resetFor === s.id && <ResetOwnerPassword store_id={s.id} email={s.owner_email} onDone={() => setResetFor(null)} />}
             </div>
           );
@@ -285,6 +288,38 @@ function AppLogoEditor() {
       </div>
       {msg && <p className="mt-2 text-sm text-success">{msg}</p>}
       {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+    </div>
+  );
+}
+
+// Ubah nama store resmi (sesuai kode site) — beda dari nama kantin untuk pembeli.
+function NamaStoreEdit({ store, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [val, setVal] = useState(store.nama_store || "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  async function save() {
+    setBusy(true); setErr("");
+    const t = await token();
+    const res = await fetch("/api/admin/stores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ store_id: store.id, action: "set_nama_store", nama_store: val }),
+    });
+    const j = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) return setErr(j.error || "Gagal menyimpan.");
+    setOpen(false); onSaved();
+  }
+  if (!open) return (
+    <button onClick={() => { setVal(store.nama_store || ""); setOpen(true); }} className="mt-2 rounded-lg bg-surface px-2 py-1 text-xs font-semibold">✏️ Nama store</button>
+  );
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <input className="input max-w-xs py-1.5 text-sm" value={val} onChange={(e) => setVal(e.target.value)} placeholder="INFORMA ..." />
+      <Button onClick={save} loading={busy} className="btn-xs">Simpan</Button>
+      <button onClick={() => setOpen(false)} className="btn-ghost btn-xs">Batal</button>
+      {err && <p className="w-full text-xs text-danger">{err}</p>}
     </div>
   );
 }

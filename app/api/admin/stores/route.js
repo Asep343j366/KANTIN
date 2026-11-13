@@ -41,7 +41,7 @@ export async function GET(request) {
   const db = admin();
   const { data: stores } = await db
     .from("stores")
-    .select("id, kode_site, slug, nama, status, is_platform_admin, is_demo, langganan_until, created_at")
+    .select("*") // termasuk nama_store (migration v28)
     .order("created_at", { ascending: true });
 
   // Peta owner email
@@ -65,6 +65,7 @@ export async function POST(request) {
   const owner_password = b.owner_password || "";
   const trial_days = parseInt(b.trial_days) || 0;
   const is_demo = !!b.is_demo;
+  const nama_store = (b.nama_store || "").trim().slice(0, 80);
 
   if (!kode_site || !nama) return Response.json({ error: "Kode Site & Nama wajib." }, { status: 400 });
   if (!owner_email || owner_password.length < 6)
@@ -87,6 +88,7 @@ export async function POST(request) {
       kode_site,
       slug: makeSlug(kode_site),
       nama,
+      ...(nama_store ? { nama_store } : {}),
       is_demo,
       // Toko demo selalu aktif (tak tunduk langganan).
       status: is_demo || trial_days > 0 ? "aktif" : "nonaktif",
@@ -130,6 +132,13 @@ export async function PATCH(request) {
   const db = admin();
   const { data: store } = await db.from("stores").select("id, is_platform_admin, langganan_until").eq("id", store_id).maybeSingle();
   if (!store) return Response.json({ error: "Store tidak ditemukan." }, { status: 404 });
+  // Nama store resmi per kode site (boleh juga untuk store platform).
+  if (action === "set_nama_store") {
+    const nama_store = String(b.nama_store || "").trim().slice(0, 80) || null;
+    const { error } = await db.from("stores").update({ nama_store }).eq("id", store_id);
+    if (error) return Response.json({ error: /nama_store/.test(error.message) ? "Kolom nama store belum ada — jalankan migration_v28 dulu." : error.message }, { status: 400 });
+    return Response.json({ ok: true });
+  }
   if (store.is_platform_admin) return Response.json({ error: "Store platform tak bisa diubah." }, { status: 400 });
 
   // Reset password owner store (manual, TANPA email) — untuk owner yang lupa password.

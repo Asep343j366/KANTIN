@@ -140,7 +140,7 @@ export default function AdminShell({ children }) {
           </p>
           <p className="truncate text-[13px] font-extrabold text-ink">{store?.store?.nama || "Kantin"}</p>
           {store?.store?.kode_site && (
-            <p className="truncate text-[9px] font-semibold text-ink-soft">Site {store.store.kode_site}</p>
+            <p className="truncate text-[9px] font-semibold text-ink-soft" title={store.store.nama_store || ""}>Site {store.store.kode_site}{store.store.nama_store ? ` · ${store.store.nama_store}` : ""}</p>
           )}
         </div>
       </div>
