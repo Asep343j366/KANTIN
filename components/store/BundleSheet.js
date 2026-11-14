@@ -6,11 +6,15 @@ import { addBundle } from "@/lib/cart";
 import { bundleNormal, sisaKuota } from "@/lib/promo";
 import PromoBanner from "@/components/store/PromoBanner";
 import { flyToCart, tintFor, Icon, RollingRupiah } from "@/components/store/fx";
+import { useSwipeClose } from "@/components/store/useSwipeClose";
 
 export default function BundleSheet({ promo, prodMap, usage, demo, onClose }) {
   const [qty, setQty] = useState(1);
   const [closing, setClosing] = useState(false);
   const ctaRef = useRef(null);
+  const sheetRef = useRef(null);
+  const scrollRef = useRef(null);
+  const drag = useSwipeClose(sheetRef, scrollRef, () => close());
 
   useEffect(() => {
     history.pushState({ zkSheet: true }, "");
@@ -50,10 +54,10 @@ export default function BundleSheet({ promo, prodMap, usage, demo, onClose }) {
   return (
     <div className="fixed inset-0 z-[60]">
       <div onClick={() => close()} className={`absolute inset-0 bg-[#0a1d42]/50 backdrop-blur-[2px] transition-opacity duration-200 ${closing ? "opacity-0" : "zk-fade"}`} />
-      <div className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[90vh] w-full max-w-md flex-col rounded-t-[28px] bg-white shadow-[0_-12px_40px_rgba(10,29,66,.3)] ${closing ? "" : "zk-sheet"}`}
-        style={{ transform: closing ? "translateY(100%)" : "none", transition: "transform .22s ease-in" }}>
+      <div ref={sheetRef} className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[90vh] w-full max-w-md flex-col rounded-t-[28px] bg-white shadow-[0_-12px_40px_rgba(10,29,66,.3)] ${closing ? "" : "zk-sheet"}`}
+        style={{ transform: closing ? "translateY(100%)" : `translateY(${drag}px)`, transition: closing || !drag ? "transform .22s ease-in" : "none" }}>
         <div className="shrink-0 pb-2 pt-2.5"><div className="mx-auto h-1.5 w-11 rounded-full bg-[#d9dfec]" /></div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
           <PromoBanner promo={promo} prodMap={prodMap} sisa={sisa} />
           <p className="mb-2 mt-4 text-sm font-extrabold text-[#14213d]">Isi paket</p>
           <div className="space-y-2">

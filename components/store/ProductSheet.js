@@ -7,14 +7,16 @@ import { addToCart } from "@/lib/cart";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { flyToCart, tintFor, Icon, RollingRupiah } from "@/components/store/fx";
 import { discountedPrice, pctOff } from "@/lib/promo";
+import { useSwipeClose } from "@/components/store/useSwipeClose";
 
 export default function ProductSheet({ product, rank, demo, alternatives = [], onClose, onPick, promo }) {
   const [qty, setQty] = useState(1);
   const [fav, setFav] = useState(false);
-  const [drag, setDrag] = useState(0);
   const [closing, setClosing] = useState(false);
-  const startY = useRef(null);
+  const sheetRef = useRef(null);
+  const scrollRef = useRef(null);
   const ctaRef = useRef(null);
+  const drag = useSwipeClose(sheetRef, scrollRef, () => close());
 
   useEffect(() => { setQty(1); setFav(isFavorite(product.id)); }, [product.id]);
 
@@ -52,26 +54,21 @@ export default function ProductSheet({ product, rank, demo, alternatives = [], o
     close();
   }
 
-  const onStart = (e) => { startY.current = e.touches[0].clientY; };
-  const onMove = (e) => {
-    if (startY.current == null) return;
-    setDrag(Math.max(0, e.touches[0].clientY - startY.current));
-  };
-  const onEnd = () => { if (drag > 110) close(); else setDrag(0); startY.current = null; };
 
   return (
     <div className="fixed inset-0 z-[60]">
       <div onClick={() => close()}
         className={`absolute inset-0 bg-[#0a1d42]/50 backdrop-blur-[2px] transition-opacity duration-200 ${closing ? "opacity-0" : "zk-fade"}`} />
       <div
+        ref={sheetRef}
         className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[90vh] w-full max-w-md flex-col rounded-t-[28px] bg-white shadow-[0_-12px_40px_rgba(10,29,66,.3)] ${closing ? "" : "zk-sheet"}`}
         style={{ transform: closing ? "translateY(100%)" : `translateY(${drag}px)`, transition: closing || !drag ? "transform .22s ease-in" : "none" }}
       >
-        <div onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} className="shrink-0 pb-2 pt-2.5">
+        <div className="shrink-0 pb-2 pt-2.5">
           <div className="mx-auto h-1.5 w-11 rounded-full bg-[#d9dfec]" />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
           <div className={`zk-zoom relative overflow-hidden rounded-3xl bg-gradient-to-br ${habis ? "from-[#eef0f5] to-[#dde2ec]" : tintFor(product.id)} aspect-[4/3]`}>
             {product.foto_url ? (
               // eslint-disable-next-line @next/next/no-img-element

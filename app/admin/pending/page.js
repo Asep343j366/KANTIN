@@ -5,6 +5,8 @@ import { getMyStore } from "@/lib/store";
 import { rupiah, fmtDateTime } from "@/lib/format";
 import { confirmDialog } from "@/lib/confirmDialog";
 import Button from "@/components/Button";
+import Link from "next/link";
+import { duplicateIds } from "@/lib/duplicateOrders";
 
 export default function PendingPage() {
   const [orders, setOrders] = useState([]);
@@ -15,6 +17,7 @@ export default function PendingPage() {
   const [bulk, setBulk] = useState(""); // teks progres saat aksi massal
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [dups, setDups] = useState(() => new Set()); // id pesanan yg punya kembaran
 
   async function token() {
     const { data } = await supabase.auth.getSession();
@@ -32,6 +35,12 @@ export default function PendingPage() {
       .eq("payment_status", "pending")
       .order("created_at", { ascending: false });
     setOrders(data || []);
+    // Kembaran bisa berupa pending lain ATAU pesanan yg sudah lunas (2 hari terakhir).
+    const since = new Date(Date.now() - 2 * 864e5).toISOString();
+    const { data: paid } = await supabase.from("orders")
+      .select("id, nama_pelanggan, no_hp, total, created_at")
+      .eq("store_id", s.store_id).eq("status", "selesai").gte("created_at", since).limit(1000);
+    setDups(duplicateIds([...(data || []), ...(paid || [])]));
     setLoading(false);
   }
 
@@ -107,7 +116,7 @@ export default function PendingPage() {
       title: isCancel ? "Batalkan Terpilih" : "Tandai Lunas Terpilih",
       message: isCancel
         ? `Batalkan ${selectedOrders.length} pesanan terpilih?\n\nOrder akan hilang dari daftar ini. Gunakan untuk transaksi ganda / yang sudah dicatat manual.`
-        : `Tandai LUNAS ${selectedOrders.length} pesanan terpilih (total ${rupiah(selectedTotal)})?\n\nLakukan HANYA untuk pesanan yang pembayarannya benar-benar sudah masuk.`,
+        : `Tandai LUNAS ${selectedOrders.length} pesanan terpilih (total ${rupiah(selectedTotal)})?${selectedOrders.some((o) => dups.has(o.id)) ? `\n\n⚠️ ${selectedOrders.filter((o) => dups.has(o.id)).length} di antaranya KEMUNGKINAN DOBEL — cek dulu, jangan sampai pesanan kembar ikut dilunaskan.` : ""}\n\nLakukan HANYA untuk pesanan yang pembayarannya benar-benar sudah masuk.`,
       confirmLabel: isCancel ? "Ya, Batalkan Semua" : "Ya, Tandai Lunas Semua",
       danger: isCancel,
     });
@@ -137,7 +146,10 @@ export default function PendingPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-extrabold">Menunggu Pembayaran</h1>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-lg font-extrabold">Menunggu Pembayaran</h1>
+        <Link href="/admin/duplicates" className="text-sm font-semibold text-primary">Cek Pesanan Ganda →</Link>
+      </div>
       <p className="mb-4 text-sm text-ink-soft">
         Pesanan yang belum terkonfirmasi lunas. Bila pembayaran sudah masuk tetapi gagal
         terbaca otomatis oleh Casaku, tandai lunas manual di sini.
@@ -182,6 +194,10 @@ export default function PendingPage() {
                 <div className="min-w-0">
                 <p className="font-semibold">
                   {o.nama_pelanggan} <span className="text-xs font-normal text-ink-soft">· {o.kode_pesanan}</span>
+                  {dups.has(o.id) && (
+                    <span title="Ada pesanan lain dari pembeli yang sama dengan total sama dalam 10 menit"
+                      className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">KEMUNGKINAN DOBEL</span>
+                  )}
                 </p>
                 <p className="text-xs text-ink-soft">{fmtDateTime(o.created_at)} · {o.no_hp}</p>
                 <p className="text-xs text-ink-soft">Ref: {o.payment_ref || "—"}</p>

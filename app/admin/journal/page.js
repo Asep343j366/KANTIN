@@ -443,8 +443,15 @@ function MonthStatement({ m, storeName, txs, onClose, store, adminEmail, sales }
         .r{text-align:right;white-space:nowrap}
         .b{font-weight:700}.in{color:#16A34A}.out{color:#DC2626}
         .foot{margin-top:18px;color:#94A3B8;font-size:10px}
-        @media print{body{margin:12mm}}
+        .bar{position:sticky;top:0;z-index:9;display:flex;gap:8px;justify-content:space-between;align-items:center;margin:-24px -24px 18px;padding:10px 16px;background:#0F2A5C}
+        .bar button{font:600 13px system-ui,sans-serif;border:0;border-radius:10px;padding:9px 14px;cursor:pointer}
+        .bar .back{background:rgba(255,255,255,.14);color:#fff}.bar .pr{background:#FF8A3D;color:#fff}
+        @media print{body{margin:12mm}.bar{display:none}}
       </style></head><body>
+      <div class="bar">
+        <button class="back" onclick="(function(){try{window.close()}catch(e){}setTimeout(function(){if(!window.closed){if(history.length>1)history.back();else location.href='/admin/journal';}},250)})()">← Kembali ke Jurnal</button>
+        <button class="pr" onclick="window.print()">Cetak / Simpan PDF</button>
+      </div>
       <h1>Buku Kas — ${label}</h1>
       <div class="sub">${storeName ? escapeHtml(storeName) + " · " : ""}Dicetak ${fmtDateTime(new Date().toISOString())}</div>
       <table class="sum"><tr>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -99,12 +99,17 @@ export default function CheckoutPage() {
     return () => { stopped = true; supabase.removeChannel(ch); clearInterval(poll); };
   }, [step, kode, slug, router]);
 
+  const busyRef = useRef(false);
   async function proceedToPayment() {
+    // Kunci SINKRON: setProcessing baru berlaku setelah render, jadi ketukan
+    // ganda yg cepat bisa membuat 2 pesanan kembar. Ref menutup celah itu.
+    if (busyRef.current) return;
     setError("");
     if (!store?.id) return setError("Toko tidak dikenali. Muat ulang halaman.");
     if (store.is_demo) return setError("Ini toko demo — transaksi dinonaktifkan.");
     if (!nama.trim()) return setError("Nama wajib diisi.");
     if (!/^0[0-9]{8,13}$/.test(hp.trim())) return setError("Nomor HP tidak valid (contoh: 08123456789).");
+    busyRef.current = true;
     setProcessing(true);
     try {
       // 0) Validasi ulang harga promo (promo bisa berakhir/berubah sejak masuk keranjang).
@@ -132,6 +137,7 @@ export default function CheckoutPage() {
         if (changed) {
           setCart(fixed);
           setItems(fixed);
+          busyRef.current = false;
           setProcessing(false);
           return setError(ended.length
             ? `Promo ${ended.join(", ")} sudah berakhir dan dihapus dari keranjang. Cek lagi totalnya, lalu tekan Bayar.`
@@ -150,10 +156,21 @@ export default function CheckoutPage() {
       });
       const orderTotal = lines.reduce((s, l) => s + l.harga * l.jumlah, 0);
 
-      const code = orderCode();
+      // 1a) Pesanan kembar yg masih menunggu (HP sama, total sama, ≤30 menit)?
+      //     Pakai pesanan itu — jangan buat baru (mencegah transaksi ganda).
+      const since = new Date(Date.now() - 30 * 60000).toISOString();
+      const { data: twin } = await supabase.from("orders")
+        .select("id, kode_pesanan")
+        .eq("store_id", store.id).eq("no_hp", hp.trim()).eq("total", orderTotal)
+        .eq("status", "menunggu_pembayaran").eq("payment_status", "pending")
+        .gte("created_at", since).order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+      let order = twin;
+      const code = twin?.kode_pesanan || orderCode();
 
       // 1) Buat order (menunggu pembayaran) + item
-      const { data: order, error: oErr } = await supabase.from("orders").insert({
+      if (!twin) {
+      const { data: created, error: oErr } = await supabase.from("orders").insert({
         store_id: store.id,
         kode_pesanan: code,
         nama_pelanggan: nama.trim(),
@@ -163,6 +180,7 @@ export default function CheckoutPage() {
         status: "menunggu_pembayaran",
       }).select().single();
       if (oErr) throw oErr;
+      order = created;
 
       const rows = lines.map((l) => ({ store_id: store.id, order_id: order.id, ...l }));
       let { error: iErr } = await supabase.from("order_items").insert(rows);
@@ -171,6 +189,7 @@ export default function CheckoutPage() {
         ({ error: iErr } = await supabase.from("order_items").insert(rows.map(({ promo_id, ...r }) => r)));
       }
       if (iErr) throw iErr;
+      }
 
       // 2) Minta QRIS ke server (server → Casaku)
       const res = await fetch("/api/pay/create", {
@@ -199,6 +218,7 @@ export default function CheckoutPage() {
     } catch (e) {
       setError("Gagal: " + (e.message || e));
     }
+    busyRef.current = false;
     setProcessing(false);
   }
 
