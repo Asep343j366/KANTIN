@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
+import Link from "next/link";
 import Button from "@/components/Button";
 
 export default function AdminPayment() {
@@ -53,6 +54,48 @@ export default function AdminPayment() {
       ? `${window.location.origin}/api/pay/webhook/${store.store_id}`
       : "";
 
+  const casakuFields = (
+    <>
+          <a
+            href="/panduan-casaku.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 transition hover:bg-primary/10">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold text-ink">Panduan Pemasangan Casaku (PDF)</span>
+              <span className="block text-xs text-ink-soft">Cara memasang Casaku di HP Android secara mandiri — klik untuk unduh.</span>
+            </span>
+          </a>
+          <h2 className="font-bold">Kredensial Casaku</h2>
+          <Field label="License Key">
+            <input className="input" value={cfg.license_key || ""} onChange={(e) => set("license_key", e.target.value)} placeholder="x-license-key Casaku" />
+          </Field>
+          <Field label="QR ID (UUID QRIS merchant)">
+            <input className="input" value={cfg.qr_id || ""} onChange={(e) => set("qr_id", e.target.value)} />
+          </Field>
+          <Field label="Webhook Secret">
+            <input className="input" value={cfg.webhook_secret || ""} onChange={(e) => set("webhook_secret", e.target.value)} placeholder="Untuk verifikasi HMAC" />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Package IDs">
+              <input className="input" value={cfg.package_ids || "id.dana"} onChange={(e) => set("package_ids", e.target.value)} placeholder="id.dana" />
+            </Field>
+            <Field label="Expire (menit)">
+              <input className="input" type="number" value={cfg.expire_minutes ?? 1440} onChange={(e) => set("expire_minutes", e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="rounded-xl bg-surface p-3">
+            <p className="text-xs font-semibold">URL Webhook (daftarkan di dashboard Casaku):</p>
+            <code className="mt-1 block break-all text-xs text-primary">{webhookUrl}</code>
+          </div>
+</>
+  );
+
   return (
     <div>
       <h1 className="mb-1 text-lg font-extrabold">Pembayaran</h1>
@@ -62,12 +105,6 @@ export default function AdminPayment() {
         <div className="card mb-4 border-l-4 border-amber-400 bg-amber-50 p-4 text-sm text-amber-800">
           <b>Setelan ini masih dibaca dari ENV Vercel.</b> Klik <b>Simpan Pembayaran</b> sekali untuk
           memindahkannya ke database. Setelah itu mode bisa diubah dari halaman ini (ENV tak dipakai lagi).
-        </div>
-      )}
-      {isPlatform && cfg.mode !== "casaku" && (
-        <div className="card mb-4 border-l-4 border-primary bg-primary/5 p-4 text-sm text-ink">
-          Kredensial Casaku tetap tersimpan dan <b>tetap dipakai untuk tagihan langganan</b> store lain.
-          Mode manual hanya berlaku untuk pembayaran kantin store ini.
         </div>
       )}
 
@@ -93,50 +130,29 @@ export default function AdminPayment() {
         </p>
       </div>
 
-      {/* Field Casaku */}
-      {(cfg.mode === "casaku" || isPlatform) && (
-        <div className="card mb-4 space-y-3 p-4">
-          <a
-            href="/panduan-casaku.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            download
-            className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 transition hover:bg-primary/10">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[13px] font-semibold text-ink">Panduan Pemasangan Casaku (PDF)</span>
-              <span className="block text-xs text-ink-soft">Cara memasang Casaku di HP Android secara mandiri — klik untuk unduh.</span>
-            </span>
-          </a>
-          <h2 className="font-bold">Kredensial Casaku</h2>
-          {isPlatform && cfg.mode !== "casaku" && (
-            <p className="-mt-2 text-xs text-ink-soft">Tetap diisi walau mode Manual — dipakai untuk menagih langganan store lain.</p>
+      {cfg.mode === "casaku" ? (
+        <div className="card mb-4 space-y-3 p-4">{casakuFields}</div>
+      ) : (
+        <>
+          <div className="card mb-4 space-y-2 p-4 text-sm">
+            <h2 className="font-bold">Pembayaran Manual</h2>
+            <ol className="list-decimal space-y-1 pl-5 text-ink-soft">
+              <li>Pelanggan bayar ke <b>QRIS statis</b> atau <b>rekening</b> toko, lalu mengunggah bukti.</li>
+              <li>Pesanan masuk ke menu <b>Menunggu</b> — cek mutasi, lalu tekan <b>Tandai Lunas</b>.</li>
+            </ol>
+            <Link href="/admin/settings" className="inline-block pt-1 font-semibold text-primary">Atur QRIS statis &amp; info rekening di Pengaturan →</Link>
+          </div>
+          {isPlatform && (
+            <details className="card mb-4 p-4">
+              <summary className="cursor-pointer text-sm font-bold">Kredensial Casaku untuk tagihan langganan (khusus platform)</summary>
+              <p className="mt-2 text-xs text-ink-soft">
+                Tidak dipakai untuk pembayaran kantin store ini (mode Manual). Tetap disimpan karena dipakai
+                untuk menagih langganan store lain.
+              </p>
+              <div className="mt-3 space-y-3">{casakuFields}</div>
+            </details>
           )}
-          <Field label="License Key">
-            <input className="input" value={cfg.license_key || ""} onChange={(e) => set("license_key", e.target.value)} placeholder="x-license-key Casaku" />
-          </Field>
-          <Field label="QR ID (UUID QRIS merchant)">
-            <input className="input" value={cfg.qr_id || ""} onChange={(e) => set("qr_id", e.target.value)} />
-          </Field>
-          <Field label="Webhook Secret">
-            <input className="input" value={cfg.webhook_secret || ""} onChange={(e) => set("webhook_secret", e.target.value)} placeholder="Untuk verifikasi HMAC" />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Package IDs">
-              <input className="input" value={cfg.package_ids || "id.dana"} onChange={(e) => set("package_ids", e.target.value)} placeholder="id.dana" />
-            </Field>
-            <Field label="Expire (menit)">
-              <input className="input" type="number" value={cfg.expire_minutes ?? 1440} onChange={(e) => set("expire_minutes", e.target.value)} />
-            </Field>
-          </div>
-
-          <div className="rounded-xl bg-surface p-3">
-            <p className="text-xs font-semibold">URL Webhook (daftarkan di dashboard Casaku):</p>
-            <code className="mt-1 block break-all text-xs text-primary">{webhookUrl}</code>
-          </div>
-        </div>
+        </>
       )}
 
       {msg && <p className="mb-2 text-sm text-success">{msg}</p>}
