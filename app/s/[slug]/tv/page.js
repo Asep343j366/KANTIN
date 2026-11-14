@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl } from "@/lib/thumb";
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
@@ -316,7 +317,7 @@ export default function KantinTV() {
                 <div className="ktvX">
                   {menuLoop.map((p, i) => (
                     <div key={p.id + "-" + i} style={S.prodM}>
-                      <div style={{ ...S.prodImg, backgroundImage: p.foto_url ? `url(${p.foto_url})` : "none" }}>
+                      <div style={{ ...S.prodImg, backgroundImage: p.foto_url ? `url(${thumbUrl(p.foto_url)})` : "none" }}>
                         {!p.foto_url && <i className="ti ti-tools-kitchen-2" style={{ fontSize: 34, color: "#1B2E54", opacity: 0.4 }} />}
                         <span style={S.tersedia}><i className="ti ti-circle-check" /> Tersedia</span>
                       </div>

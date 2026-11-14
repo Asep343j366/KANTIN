@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useRef, useState } from "react";
 import { rupiah } from "@/lib/format";
 import { addToCart, getQtyById, decById } from "@/lib/cart";
@@ -56,7 +57,7 @@ export default function ProductCard({ product, demo, onOpen, rank, variant = "gr
           <>
             {!imgOk && <div className="zk-shimmer absolute inset-0" />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={product.foto_url} alt={product.nama} loading="lazy" decoding="async"
+            <img src={thumbUrl(product.foto_url)} onError={thumbFallback(product.foto_url)} alt={product.nama} loading="lazy" decoding="async"
               onLoad={() => setImgOk(true)} onError={() => setImgOk(true)}
               className={`h-full w-full object-cover transition-opacity duration-300 ${imgOk ? "opacity-100" : "opacity-0"}`} />
           </>

@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -397,7 +398,7 @@ function OrderSummary({ items, total }) {
           <div key={i} className="flex items-center gap-2.5 text-sm">
             <span className={`h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(it.id)}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {it.foto_url && <img src={it.foto_url} alt="" className="h-full w-full object-cover" />}
+              {it.foto_url && <img src={thumbUrl(it.foto_url)} onError={thumbFallback(it.foto_url)} alt="" className="h-full w-full object-cover" />}
             </span>
             <span className="min-w-0 flex-1 truncate text-[#14213d]"><b>{it.qty}×</b> {it.nama}</span>
             <span className="font-bold text-[#14213d]">{rupiah(it.harga * it.qty)}</span>

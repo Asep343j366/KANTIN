@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
@@ -319,7 +320,7 @@ function Thumb({ src, size }) {
   return (
     <span className={`${size} shrink-0 overflow-hidden rounded-lg bg-gray-100`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
+      {src && <img src={thumbUrl(src)} onError={thumbFallback(src)} alt="" loading="lazy" className="h-full w-full object-cover" />}
     </span>
   );
 }

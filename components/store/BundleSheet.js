@@ -1,5 +1,6 @@
 "use client";
 // Lembar detail paket bundling: isi paket, harga normal vs paket, tombol ambil.
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useRef, useState } from "react";
 import { rupiah } from "@/lib/format";
 import { addBundle } from "@/lib/cart";
@@ -65,7 +66,7 @@ export default function BundleSheet({ promo, prodMap, usage, demo, onClose }) {
               <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-[#f8f9fc] p-2">
                 <span className={`h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(p.id)}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {p.foto_url && <img src={p.foto_url} alt="" className="h-full w-full object-cover" />}
+                  {p.foto_url && <img src={thumbUrl(p.foto_url)} onError={thumbFallback(p.foto_url)} alt="" className="h-full w-full object-cover" />}
                 </span>
                 <span className="min-w-0 flex-1 text-sm text-[#14213d]"><b>{it.qty || 1}×</b> {p.nama}</span>
                 <span className="text-xs text-[#9aa3b8] line-through">{rupiah(p.harga * (it.qty || 1))}</span>

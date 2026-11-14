@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -252,7 +253,7 @@ export default function OrderStatus() {
               <span className={`h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(it.product_id)}`}>
                 {fotos[it.product_id] && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={fotos[it.product_id]} alt="" className="zk-fade h-full w-full object-cover" />
+                  <img src={thumbUrl(fotos[it.product_id])} onError={thumbFallback(fotos[it.product_id])} alt="" className="zk-fade h-full w-full object-cover" />
                 )}
               </span>
               <span className="min-w-0 flex-1 truncate text-[#14213d]"><b>{it.jumlah}×</b> {it.nama_produk}{it.catatan ? ` (${it.catatan})` : ""}</span>

@@ -1,6 +1,7 @@
 "use client";
 // Lembar detail menu (bottom sheet). Naik dari bawah, tutup dengan geser ke
 // bawah / ketuk area gelap / tombol kembali HP. Tanpa catatan (keputusan user).
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useRef, useState } from "react";
 import { rupiah } from "@/lib/format";
 import { addToCart } from "@/lib/cart";
@@ -125,7 +126,7 @@ export default function ProductSheet({ product, rank, demo, alternatives = [], o
                   <button key={a.id} onClick={() => onPick?.(a)} className="zk-card zk-press p-2 text-left">
                     <div className={`aspect-[4/3] overflow-hidden rounded-xl bg-gradient-to-br ${tintFor(a.id)}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {a.foto_url && <img src={a.foto_url} alt={a.nama} className="h-full w-full object-cover" />}
+                      {a.foto_url && <img src={thumbUrl(a.foto_url)} onError={thumbFallback(a.foto_url)} alt={a.nama} className="h-full w-full object-cover" />}
                     </div>
                     <p className="mt-1.5 line-clamp-1 text-xs font-bold text-[#14213d]">{a.nama}</p>
                     <p className="text-xs font-extrabold text-[#0f2a5c]">{rupiah(a.harga)}</p>

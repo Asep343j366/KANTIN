@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { fmtDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/compressImage";
+import { uploadThumb } from "@/lib/thumb";
 import { fetchAllRows } from "@/lib/sbPaginate";
 import { confirmDialog } from "@/lib/confirmDialog";
 import { refreshBrand, useBrand } from "@/lib/brand";
@@ -58,6 +59,7 @@ export default function StoresPage() {
         const small = await compressImage(new File([blob], "f.jpg", { type: blob.type || "image/jpeg" }), { maxWidth: 640, maxHeight: 640, quality: 0.6 });
         const { error } = await supabase.storage.from("products").upload(path, small, { upsert: true, cacheControl: "31536000", contentType: "image/jpeg" });
         if (error) throw error;
+        await uploadThumb(supabase, "products", path, small);
         ok++;
       } catch { fail++; }
     }
@@ -241,6 +243,7 @@ function AppLogoEditor() {
       const path = `logo-app-${Date.now()}.png`;
       const { error } = await supabase.storage.from("qris").upload(path, file, { upsert: true, cacheControl: "31536000", contentType: "image/png" });
       if (error) throw error;
+      await uploadThumb(supabase, "qris", path, file, { png: true });
       await persist(supabase.storage.from("qris").getPublicUrl(path).data.publicUrl);
       setFile(null); setPrev(null);
       setMsg("Logo tersimpan & berlaku untuk semua site.");

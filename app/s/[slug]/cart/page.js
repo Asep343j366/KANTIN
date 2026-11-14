@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -65,7 +66,7 @@ export default function CartPage() {
             <div className={`h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br ${tintFor(it.id)}`}>
               {it.foto_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={it.foto_url} alt={it.nama} className="h-full w-full object-cover" />
+                <img src={thumbUrl(it.foto_url)} onError={thumbFallback(it.foto_url)} alt={it.nama} className="h-full w-full object-cover" />
               )}
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">

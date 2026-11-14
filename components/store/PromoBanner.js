@@ -1,6 +1,7 @@
 "use client";
 // Banner promo (didesain dari template di admin). Dipakai di pratinjau admin
 // & carousel toko pembeli. Murni tampilan.
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { rupiah } from "@/lib/format";
 import { tplOf, discountedPrice, bundleNormal, pctOff } from "@/lib/promo";
 
@@ -60,7 +61,7 @@ export default function PromoBanner({ promo, prodMap = {}, sisa = null, classNam
         <div className="absolute bottom-3.5 right-3 z-10 flex">
           {fotos.map((f, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={f} alt="" className={`h-[56px] w-[56px] rounded-xl border-2 border-white/90 bg-white object-cover shadow-lg ${i ? "-ml-4" : ""}`}
+            <img key={i} src={thumbUrl(f)} onError={thumbFallback(f)} alt="" className={`h-[56px] w-[56px] rounded-xl border-2 border-white/90 bg-white object-cover shadow-lg ${i ? "-ml-4" : ""}`}
               style={{ transform: fotos.length > 1 ? `rotate(${i ? 7 : -7}deg)` : undefined, zIndex: i ? 2 : 1 }} />
           ))}
         </div>

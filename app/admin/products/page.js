@@ -1,10 +1,12 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMyStore } from "@/lib/store";
 import { rupiah } from "@/lib/format";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/compressImage";
+import { uploadThumb } from "@/lib/thumb";
 import { confirmDialog } from "@/lib/confirmDialog";
 
 const empty = { nama: "", deskripsi: "", harga: "", hpp: "", category_id: "", stok: "", tersedia: true, foto_url: "" };
@@ -50,6 +52,7 @@ export default function AdminProducts() {
         const small = await compressImage(new File([blob], "f.jpg", { type: blob.type || "image/jpeg" }), { maxWidth: 640, maxHeight: 640, quality: 0.6 });
         const { error } = await supabase.storage.from("products").upload(path, small, { upsert: true, cacheControl: "31536000", contentType: "image/jpeg" });
         if (error) throw error;
+        await uploadThumb(supabase, "products", path, small);
         ok++;
       } catch { fail++; }
     }
@@ -86,7 +89,7 @@ export default function AdminProducts() {
           <div key={p.id} className="card flex items-center gap-3 p-3">
             <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface">
               {p.foto_url && /* eslint-disable-next-line @next/next/no-img-element */ (
-                <img src={p.foto_url} alt="" className="h-full w-full object-cover" />
+                <img src={thumbUrl(p.foto_url)} onError={thumbFallback(p.foto_url)} alt="" className="h-full w-full object-cover" />
               )}
             </div>
             <div className="flex-1">
@@ -127,6 +130,7 @@ function ProductForm({ product, categories, onClose, onSaved }) {
         const path = `prod-${Date.now()}.jpg`;
         const { error: e } = await supabase.storage.from("products").upload(path, up, { cacheControl: "31536000", contentType: "image/jpeg" });
         if (e) throw e;
+        await uploadThumb(supabase, "products", path, up);
         foto_url = supabase.storage.from("products").getPublicUrl(path).data.publicUrl;
       }
       const payload = {

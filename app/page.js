@@ -1,4 +1,5 @@
 "use client";
+import { thumbUrl, thumbFallback } from "@/lib/thumb";
 import AppLogo from "@/components/AppLogo";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -308,7 +309,7 @@ function PhoneMockups({ items }) {
                 <div key={i} className="rounded-xl bg-white p-1.5 shadow-card">
                   {it.foto_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={it.foto_url} alt={it.nama} className="h-16 w-full rounded-lg object-cover" />
+                    <img src={thumbUrl(it.foto_url)} onError={thumbFallback(it.foto_url)} alt={it.nama} className="h-16 w-full rounded-lg object-cover" />
                   ) : (
                     <div className="h-16 rounded-lg bg-gradient-to-br from-primary-light to-[#EAF7EE]" />
                   )}
